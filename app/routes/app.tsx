@@ -3,6 +3,7 @@ import { Link, Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { NavMenu } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import "../styles/admin.css";
 
 // AppProvider types are missing from the published package build in some versions;
 // runtime export still exists — declare locally for typecheck.

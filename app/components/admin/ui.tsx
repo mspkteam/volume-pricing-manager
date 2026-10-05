@@ -1,0 +1,145 @@
+import type { ReactNode } from "react";
+import {
+  pricingCompatibilityLabel,
+  pricingStatusLabel,
+} from "../../lib/pricing-status";
+
+export function PageIntro({ children }: { children: ReactNode }) {
+  return <p className="vpm-page-intro">{children}</p>;
+}
+
+export function FlashBanner({
+  message,
+  ok,
+}: {
+  message: string;
+  ok?: boolean;
+}) {
+  return <s-banner tone={ok ? "success" : "critical"}>{message}</s-banner>;
+}
+
+export function StatGrid({ children }: { children: ReactNode }) {
+  return <div className="vpm-stat-grid">{children}</div>;
+}
+
+export function StatCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: string;
+}) {
+  return (
+    <div className="vpm-stat-card">
+      <span className="vpm-stat-label">{label}</span>
+      <span className="vpm-stat-value">{value}</span>
+      {hint ? <span className="vpm-stat-hint">{hint}</span> : null}
+    </div>
+  );
+}
+
+export function EmptyState({
+  title,
+  body,
+  children,
+}: {
+  title: string;
+  body: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="vpm-panel vpm-panel--subdued">
+      <div className="vpm-empty">
+        <p className="vpm-empty-title">{title}</p>
+        <p className="vpm-empty-body">{body}</p>
+        {children ? <s-stack direction="inline" gap="base">{children}</s-stack> : null}
+      </div>
+    </div>
+  );
+}
+
+export function TierName({
+  name,
+  badgeColor,
+  fallback,
+}: {
+  name: string;
+  badgeColor?: string;
+  fallback?: boolean;
+}) {
+  return (
+    <span className="vpm-tier-name">
+      {badgeColor ? (
+        <span
+          className="vpm-tier-dot"
+          style={{ backgroundColor: badgeColor }}
+          aria-hidden
+        />
+      ) : null}
+      {name}
+      {fallback ? <span className="vpm-tag">Fallback</span> : null}
+    </span>
+  );
+}
+
+export function ChecklistPanel({
+  items,
+}: {
+  items: Array<{ id: string; label: string; done: boolean }>;
+}) {
+  const doneCount = items.filter((i) => i.done).length;
+  return (
+    <div className="vpm-panel">
+      <s-paragraph>
+        <s-text type="strong">
+          {doneCount} of {items.length} complete
+        </s-text>
+      </s-paragraph>
+      <ul className="vpm-checklist">
+        {items.map((item) => (
+          <li key={item.id} className="vpm-checklist-item">
+            <span
+              className={
+                item.done
+                  ? "vpm-checklist-icon vpm-checklist-icon--done"
+                  : "vpm-checklist-icon vpm-checklist-icon--pending"
+              }
+              aria-hidden
+            >
+              {item.done ? "✓" : ""}
+            </span>
+            <span>{item.label}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function PricingStatusBadge({
+  status,
+  compatibility,
+}: {
+  status: string;
+  compatibility?: string;
+}) {
+  const label = pricingStatusLabel(status as never);
+  const tone =
+    status === "SYNCED" || status === "READY"
+      ? "success"
+      : status === "FAILED" || status === "UNSUPPORTED"
+        ? "critical"
+        : status === "SYNCING"
+          ? "info"
+          : "warning";
+  return (
+    <s-stack direction="inline" gap="small">
+      <s-badge tone={tone}>{label}</s-badge>
+      {compatibility ? (
+        <s-badge>{pricingCompatibilityLabel(compatibility as never)}</s-badge>
+      ) : null}
+    </s-stack>
+  );
+}

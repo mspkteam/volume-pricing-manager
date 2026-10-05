@@ -6,6 +6,16 @@ import prisma from "../db.server";
 import { ensureShop, parseSpendPolicy } from "../services/shop/shop-service";
 import { formatMoney, bpsToPercentString } from "../lib/money";
 import { buildExplainer } from "../services/explainer/build-explainer";
+import { formatDateTime, formatChangeType } from "../lib/format";
+import {
+  ChecklistPanel,
+  EmptyState,
+  PageIntro,
+  PricingStatusBadge,
+  StatCard,
+  StatGrid,
+  TierName,
+} from "../components/admin/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -78,6 +88,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     tiers: tiers.map((t) => ({
       id: t.id,
       name: t.name,
+      badgeColor: t.badgeColor,
       discount: bpsToPercentString(t.discountBps),
       minSpend: formatMoney(t.minSpendMinor, shop.currencyCode),
       assigned: t._count.assignments,
@@ -90,7 +101,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       id: c.id,
       reason: c.reason,
       changeType: c.changeType,
-      at: c.createdAt,
+      at: c.createdAt.toISOString(),
       from: c.fromTier?.name ?? "—",
       to: c.toTier?.name ?? "—",
     })),
@@ -105,53 +116,96 @@ export default function Dashboard() {
   return (
     <s-page heading={data.shop.displayName}>
       <s-button slot="primary-action" href="/app/tiers">
-        Create tiers
+        Manage tiers
       </s-button>
       <s-button slot="secondary-actions" href="/app/how-it-works">
         How it works
       </s-button>
 
+      <PageIntro>
+        Rolling spend drives tier assignment in {data.shop.currencyCode}. Checkout discounts stay
+        gated until pricing setup is verified — automation can run independently.
+      </PageIntro>
+
       {data.shop.pricingStatus === "NOT_CONFIGURED" ||
       data.shop.pricingCompatibility === "SETUP_REQUIRED" ||
       data.shop.pricingCompatibility === "UNKNOWN" ? (
         <s-banner tone="warning" heading="Checkout pricing: Setup required">
-          Tier automation can run without live checkout discounts. Verify Shopify
-          Functions compatibility (custom apps need Plus) before enabling pricing
-          writes. See Settings and ARCHITECTURE.md.
+          Tier automation can run without live checkout discounts. Verify Shopify Functions
+          compatibility (custom apps need Plus) before enabling pricing writes. See Settings.
         </s-banner>
       ) : null}
 
       {data.shop.historyAccessLimited ? (
         <s-banner tone="warning" heading="Insufficient history">
-          Imported order history may not cover the full rolling window. Automatic
-          downgrades from incomplete data are blocked by default.
+          Imported order history may not cover the full rolling window. Automatic downgrades from
+          incomplete data are blocked by default.
         </s-banner>
       ) : null}
 
+      <StatGrid>
+        <StatCard label="Customer profiles" value={data.customerCount} />
+        <StatCard
+          label="Pending approvals"
+          value={data.pendingApprovals}
+          hint={data.pendingApprovals > 0 ? "Review in Customers" : undefined}
+        />
+        <StatCard label="Active tiers" value={data.tiers.filter((t) => t.isActive).length} />
+        <StatCard
+          label="Failed jobs"
+          value={data.failedJobs}
+          hint={data.failedJobs > 0 ? "See Activity" : "All clear"}
+        />
+      </StatGrid>
+
       <s-section heading="Setup checklist">
-        <s-unordered-list>
-          {data.checklist.map((item) => (
-            <s-list-item key={item.id}>
-              {item.done ? "✓" : "○"} {item.label}
-            </s-list-item>
-          ))}
-        </s-unordered-list>
-        <s-stack direction="inline" gap="base">
-          <s-button href="/app/tiers">Configure tiers</s-button>
-          <s-button href="/app/customers" variant="secondary">
-            Import / review customers
-          </s-button>
-          <s-button href="/app/how-it-works" variant="tertiary">
-            Open explainer
-          </s-button>
-        </s-stack>
+        <ChecklistPanel items={data.checklist} />
+        <div className="vpm-meta-row">
+          <s-stack direction="inline" gap="base">
+            <s-button href="/app/tiers">Configure tiers</s-button>
+            <s-button href="/app/customers" variant="secondary">
+              Import / review customers
+            </s-button>
+            <s-button href="/app/settings" variant="tertiary">
+              Settings
+            </s-button>
+          </s-stack>
+        </div>
+      </s-section>
+
+      <s-section slot="aside" heading="At a glance">
+        <div className="vpm-panel vpm-stack-tight">
+          <s-paragraph>
+            <s-text type="strong">Pricing</s-text>
+          </s-paragraph>
+          <PricingStatusBadge
+            status={data.shop.pricingStatus}
+            compatibility={data.shop.pricingCompatibility}
+          />
+          <hr className="vpm-divider" />
+          <s-paragraph>
+            Automation:{" "}
+            <s-badge tone={data.shop.automationPaused ? "warning" : "success"}>
+              {data.shop.automationPaused ? "Paused" : "Running"}
+            </s-badge>
+          </s-paragraph>
+          <s-paragraph>
+            Import: <s-text type="strong">{data.shop.importStatus}</s-text>
+          </s-paragraph>
+          {data.shop.historyCoverageMonths != null ? (
+            <s-paragraph>History: {data.shop.historyCoverageMonths} months loaded</s-paragraph>
+          ) : null}
+        </div>
       </s-section>
 
       <s-section heading="Customers by tier">
         {data.tiers.length === 0 ? (
-          <s-paragraph>
-            No tiers yet. Create custom tiers or apply the optional starter preset.
-          </s-paragraph>
+          <EmptyState
+            title="No pricing tiers yet"
+            body="Create custom tiers or apply the optional HVAC starter preset to begin assigning customers."
+          >
+            <s-button href="/app/tiers">Go to tiers</s-button>
+          </EmptyState>
         ) : (
           <s-table>
             <s-table-header-row>
@@ -164,8 +218,16 @@ export default function Dashboard() {
               {data.tiers.map((t) => (
                 <s-table-row key={t.id}>
                   <s-table-cell>
-                    {t.name}
-                    {t.isFallback ? " (fallback)" : ""}
+                    <TierName
+                      name={t.name}
+                      badgeColor={t.badgeColor}
+                      fallback={t.isFallback}
+                    />
+                    {!t.isActive ? (
+                      <span className="vpm-tag" style={{ marginLeft: "0.5rem" }}>
+                        Inactive
+                      </span>
+                    ) : null}
                   </s-table-cell>
                   <s-table-cell>{t.minSpend}</s-table-cell>
                   <s-table-cell>{t.discount}%</s-table-cell>
@@ -175,42 +237,47 @@ export default function Dashboard() {
             </s-table-body>
           </s-table>
         )}
-        <s-paragraph>
-          Total customer profiles: {data.customerCount}. Pending approvals:{" "}
-          {data.pendingApprovals}.
-        </s-paragraph>
       </s-section>
 
       <s-section heading="Sync & automation health">
-        <s-paragraph>
-          Pricing status: <s-badge>{data.shop.pricingStatus}</s-badge> · Automation:{" "}
-          {data.shop.automationPaused ? "Paused" : "Running"} · Failed jobs:{" "}
-          {data.failedJobs}
-        </s-paragraph>
-        <s-paragraph>
-          Last sync: {data.shop.lastSuccessfulSyncAt ?? "Never"} · Last
-          recalculation: {data.shop.lastRecalculationAt ?? "Never"} · Next run:{" "}
-          {data.shop.nextScheduledRunAt ?? "Not scheduled"}
-        </s-paragraph>
-        <s-paragraph>
-          Import status: {data.shop.importStatus}
-          {data.shop.historyCoverageMonths != null
-            ? ` · History coverage: ${data.shop.historyCoverageMonths} months`
-            : ""}
-        </s-paragraph>
+        <div className="vpm-panel vpm-panel--subdued">
+          <div className="vpm-meta-row">
+            <span>
+              Last sync: <strong>{formatDateTime(data.shop.lastSuccessfulSyncAt)}</strong>
+            </span>
+            <span>
+              Last recalculation:{" "}
+              <strong>{formatDateTime(data.shop.lastRecalculationAt)}</strong>
+            </span>
+            <span>
+              Next run: <strong>{formatDateTime(data.shop.nextScheduledRunAt)}</strong>
+            </span>
+            <span>
+              Timezone: <strong>{data.shop.timezone}</strong>
+            </span>
+          </div>
+        </div>
       </s-section>
 
       <s-section heading="Recent assignment changes">
         {data.recentChanges.length === 0 ? (
-          <s-paragraph>No assignment changes recorded yet.</s-paragraph>
+          <EmptyState
+            title="No changes yet"
+            body="When customers move between tiers, the reason and timestamp appear here."
+          />
         ) : (
-          <s-unordered-list>
+          <div className="vpm-panel">
             {data.recentChanges.map((c) => (
-              <s-list-item key={c.id}>
-                {c.from} → {c.to} ({c.changeType}): {c.reason}
-              </s-list-item>
+              <div key={c.id} className="vpm-change-row">
+                <s-text type="strong">
+                  {c.from} → {c.to}
+                </s-text>
+                <div className="vpm-change-meta">
+                  {formatChangeType(c.changeType)} · {c.reason} · {formatDateTime(c.at)}
+                </div>
+              </div>
             ))}
-          </s-unordered-list>
+          </div>
         )}
       </s-section>
     </s-page>

@@ -9,6 +9,7 @@ import {
   parseSpendPolicy,
 } from "../services/shop/shop-service";
 import { buildExplainer } from "../services/explainer/build-explainer";
+import { ChecklistPanel, PageIntro } from "../components/admin/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -37,19 +38,22 @@ export default function HowItWorksPage() {
 
   return (
     <s-page heading={explainer.title}>
+      <PageIntro>
+        This page reflects your live tier names, thresholds, and policies — use it when training staff
+        or explaining the program to buyers.
+      </PageIntro>
+
       <s-section heading="At a glance">
-        <s-paragraph>{explainer.dynamicExample}</s-paragraph>
-        <s-paragraph>Rolling period: {explainer.periodLabel}</s-paragraph>
+        <div className="vpm-panel vpm-panel--subdued">
+          <s-paragraph>{explainer.dynamicExample}</s-paragraph>
+          <s-paragraph>
+            Rolling period: <s-text type="strong">{explainer.periodLabel}</s-text>
+          </s-paragraph>
+        </div>
       </s-section>
 
       <s-section heading="Onboarding checklist">
-        <s-unordered-list>
-          {explainer.checklist.map((item) => (
-            <s-list-item key={item.id}>
-              {item.done ? "✓" : "○"} {item.label}
-            </s-list-item>
-          ))}
-        </s-unordered-list>
+        <ChecklistPanel items={explainer.checklist} />
         <s-stack direction="inline" gap="base">
           <s-button href="/app/tiers">Create tiers</s-button>
           <s-button href="/app/settings" variant="secondary">

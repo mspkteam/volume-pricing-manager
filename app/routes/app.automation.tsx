@@ -11,6 +11,8 @@ import {
 import { enqueueJob, JOB_TYPES } from "../services/jobs/queue";
 import { writeAuditLog } from "../services/audit/audit-log";
 import type { AutomationPolicy, SpendPolicy } from "../lib/policies";
+import { FlashBanner, PageIntro, StatCard, StatGrid } from "../components/admin/ui";
+import { formatDateTime } from "../lib/format";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -160,24 +162,35 @@ export default function AutomationPage() {
   return (
     <s-page heading="Automation">
       {actionData?.message ? (
-        <s-banner tone={actionData.ok ? "success" : "critical"}>{actionData.message}</s-banner>
+        <FlashBanner message={actionData.message} ok={actionData.ok} />
       ) : null}
 
+      <PageIntro>
+        Control rolling spend rules, upgrade/downgrade behavior, and background jobs. The worker process
+        must be running for imports and scheduled recalculations.
+      </PageIntro>
+
+      <StatGrid>
+        <StatCard
+          label="Automation"
+          value={data.automationPaused ? "Paused" : "Running"}
+        />
+        <StatCard label="Failed jobs" value={data.failedCount} />
+        <StatCard label="Import" value={data.importStatus} />
+        <StatCard
+          label="Next run"
+          value={formatDateTime(data.nextScheduledRunAt)}
+          hint={`Last: ${formatDateTime(data.lastRecalculationAt)}`}
+        />
+      </StatGrid>
+
       <s-section heading="Status">
-        <s-paragraph>
-          Automation: {data.automationPaused ? "Paused" : "Running"} · Failed/dead jobs:{" "}
-          {data.failedCount}
-        </s-paragraph>
-        <s-paragraph>
-          Last recalculation: {data.lastRecalculationAt ?? "Never"} · Next scheduled:{" "}
-          {data.nextScheduledRunAt ?? "—"}
-        </s-paragraph>
-        <s-paragraph>
-          Import: {data.importStatus}
-          {data.historyAccessLimited
-            ? ` · Insufficient history (coverage ${data.historyCoverageMonths ?? "unknown"} months)`
-            : ""}
-        </s-paragraph>
+        {data.historyAccessLimited ? (
+          <s-banner tone="warning">
+            Insufficient history — coverage {data.historyCoverageMonths ?? "unknown"} months. Downgrades
+            from incomplete data may be blocked.
+          </s-banner>
+        ) : null}
         <s-stack direction="inline" gap="base">
           <Form method="post">
             <input type="hidden" name="intent" value={data.automationPaused ? "resume" : "pause"} />

@@ -5,6 +5,8 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
 import { formatMoney, bpsToPercentString } from "../lib/money";
+import { EmptyState, PageIntro } from "../components/admin/ui";
+import { pricingStatusLabel } from "../lib/pricing-status";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -78,11 +80,17 @@ export default function CustomersPage() {
 
   return (
     <s-page heading="Customers">
+      <PageIntro>
+        Search by name, email, or Shopify ID. Open a row to approve business accounts, set overrides,
+        or review spend history.
+      </PageIntro>
+
       <s-section heading="Search & filters">
-        <form method="get">
-          <s-stack direction="inline" gap="base">
+        <form method="get" className="vpm-filter-bar">
             <s-text-field name="q" label="Search" value={data.filters.q} />
-            <select name="tier" defaultValue={data.filters.tierId}>
+            <label>
+              Tier
+              <select name="tier" defaultValue={data.filters.tierId}>
               <option value="">All tiers</option>
               {data.tiers.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -90,33 +98,44 @@ export default function CustomersPage() {
                 </option>
               ))}
             </select>
-            <select name="approval" defaultValue={data.filters.approval}>
+            </label>
+            <label>
+              Approval
+              <select name="approval" defaultValue={data.filters.approval}>
               <option value="">Any approval</option>
               <option value="approved">Approved</option>
               <option value="pending">Not approved</option>
             </select>
-            <select name="override" defaultValue={data.filters.override}>
+            </label>
+            <label>
+              Override
+              <select name="override" defaultValue={data.filters.override}>
               <option value="">Any override</option>
               <option value="yes">Has override</option>
             </select>
-            <select name="sync" defaultValue={data.filters.sync}>
+            </label>
+            <label>
+              Pricing sync
+              <select name="sync" defaultValue={data.filters.sync}>
               <option value="">Any pricing sync</option>
               <option value="NOT_CONFIGURED">Not configured</option>
               <option value="SYNCED">Synced</option>
               <option value="FAILED">Failed</option>
               <option value="UNSUPPORTED">Unsupported</option>
             </select>
-            <s-button type="submit">Filter</s-button>
-          </s-stack>
+            </label>
+            <s-button type="submit">Apply filters</s-button>
         </form>
       </s-section>
 
       <s-section heading={`Results (${data.total})`}>
         {data.customers.length === 0 ? (
-          <s-paragraph>
-            No customers yet. Start an historical import from Automation, or wait for webhooks after
-            install.
-          </s-paragraph>
+          <EmptyState
+            title="No matching customers"
+            body="Start a historical import from Automation, or wait for order webhooks after install."
+          >
+            <s-button href="/app/automation">Open automation</s-button>
+          </EmptyState>
         ) : (
           <s-table>
             <s-table-header-row>
@@ -133,13 +152,17 @@ export default function CustomersPage() {
                 <s-table-row key={c.id}>
                   <s-table-cell>
                     <s-link href={`/app/customers/${c.id}`}>{c.name}</s-link>
-                    {c.override ? " · override" : ""}
+                    {c.override ? <span className="vpm-tag">Override</span> : null}
                   </s-table-cell>
                   <s-table-cell>{c.spend}</s-table-cell>
                   <s-table-cell>{c.tier}</s-table-cell>
                   <s-table-cell>{c.discount}</s-table-cell>
-                  <s-table-cell>{c.approved ? "Approved" : "Pending"}</s-table-cell>
-                  <s-table-cell>{c.pricingSyncStatus}</s-table-cell>
+                  <s-table-cell>
+                    <s-badge tone={c.approved ? "success" : "warning"}>
+                      {c.approved ? "Approved" : "Pending"}
+                    </s-badge>
+                  </s-table-cell>
+                  <s-table-cell>{pricingStatusLabel(c.pricingSyncStatus)}</s-table-cell>
                   <s-table-cell>{c.historyStatus}</s-table-cell>
                 </s-table-row>
               ))}

@@ -12,6 +12,7 @@ import {
 } from "../services/tiers/tier-service";
 import { buildSpendRanges } from "../lib/policies";
 import { formatMoney, bpsToPercentString } from "../lib/money";
+import { EmptyState, FlashBanner, PageIntro, TierName } from "../components/admin/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -101,22 +102,25 @@ export default function TiersPage() {
       </s-button>
 
       {actionData?.message ? (
-        <s-banner tone={actionData.ok ? "success" : "critical"}>{actionData.message}</s-banner>
+        <FlashBanner message={actionData.message} ok={actionData.ok} />
       ) : null}
 
+      <PageIntro>
+        Thresholds use {currencyCode}. Ranges are half-open: each tier runs up to, but does not
+        include, the next minimum. Renaming keeps the same internal ID.
+      </PageIntro>
+
       <s-section heading="Your tiers">
-        <s-paragraph>
-          Thresholds use {currencyCode}. Ranges are half-open: each tier runs up to, but does not
-          include, the next minimum. Renaming keeps the same internal ID.
-        </s-paragraph>
         {tiers.length === 0 ? (
-          <s-box padding="base" background="subdued" borderRadius="base">
-            <s-paragraph>No tiers configured. Create your own names or apply the optional HVAC starter preset.</s-paragraph>
+          <EmptyState
+            title="No tiers configured"
+            body="Create your own names and thresholds, or apply the optional HVAC starter preset as a starting point."
+          >
             <Form method="post">
               <input type="hidden" name="intent" value="preset" />
               <s-button type="submit">Apply optional starter preset</s-button>
             </Form>
-          </s-box>
+          </EmptyState>
         ) : (
           <s-table>
             <s-table-header-row>
@@ -132,8 +136,11 @@ export default function TiersPage() {
               {tiers.map((t) => (
                 <s-table-row key={t.id}>
                   <s-table-cell>
-                    <span style={{ color: t.badgeColor }}>●</span> {t.name}
-                    {t.isFallback ? " · fallback" : ""}
+                    <TierName
+                      name={t.name}
+                      badgeColor={t.badgeColor}
+                      fallback={t.isFallback}
+                    />
                   </s-table-cell>
                   <s-table-cell>{t.rangeLabel}</s-table-cell>
                   <s-table-cell>{t.discount}%</s-table-cell>
@@ -151,6 +158,7 @@ export default function TiersPage() {
       </s-section>
 
       <s-section heading="Quick create">
+        <div className="vpm-panel">
         <Form method="post">
           <input type="hidden" name="intent" value="create" />
           <s-stack direction="block" gap="base">
@@ -168,6 +176,7 @@ export default function TiersPage() {
             <s-button type="submit">Create tier</s-button>
           </s-stack>
         </Form>
+        </div>
       </s-section>
     </s-page>
   );

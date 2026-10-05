@@ -4,6 +4,8 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
+import { EmptyState, PageIntro } from "../components/admin/ui";
+import { formatDateTime } from "../lib/format";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -50,36 +52,43 @@ export default function ActivityPage() {
 
   return (
     <s-page heading="Activity">
+      <PageIntro>
+        Tier changes, approvals, overrides, configuration, imports, and sync events. Sensitive values
+        are redacted in summaries.
+      </PageIntro>
+
       <s-section heading="Audit trail">
-        <s-paragraph>
-          Tier changes, approvals, overrides, configuration, imports, and sync events. Sensitive
-          values are redacted.
-        </s-paragraph>
         {logs.length === 0 ? (
-          <s-paragraph>No activity yet.</s-paragraph>
+          <EmptyState title="No activity yet" body="Actions from the admin and background jobs will appear here." />
         ) : (
-          <s-unordered-list>
+          <div className="vpm-panel">
             {logs.map((l) => (
-              <s-list-item key={l.id}>
-                {String(l.at)} · {l.actor} · {l.action} · {l.summary}
-                {l.reason ? ` — ${l.reason}` : ""}
-              </s-list-item>
+              <div key={l.id} className="vpm-change-row">
+                <s-text type="strong">{l.action}</s-text> — {l.summary}
+                <div className="vpm-change-meta">
+                  {formatDateTime(l.at.toISOString())} · {l.actor}
+                  {l.reason ? ` · ${l.reason}` : ""}
+                </div>
+              </div>
             ))}
-          </s-unordered-list>
+          </div>
         )}
       </s-section>
 
       <s-section heading="Pricing synchronization failures">
         {syncFailures.length === 0 ? (
-          <s-paragraph>No pricing sync failures recorded.</s-paragraph>
+          <EmptyState title="No sync failures" body="Customer pricing sync errors will be listed here for follow-up." />
         ) : (
-          <s-unordered-list>
+          <div className="vpm-panel">
             {syncFailures.map((s) => (
-              <s-list-item key={s.id}>
-                {String(s.at)} · customer {s.customerProfileId} — {s.error}
-              </s-list-item>
+              <div key={s.id} className="vpm-change-row">
+                Customer {s.customerProfileId}
+                <div className="vpm-change-meta">
+                  {formatDateTime(s.at.toISOString())} — {s.error}
+                </div>
+              </div>
             ))}
-          </s-unordered-list>
+          </div>
         )}
       </s-section>
     </s-page>

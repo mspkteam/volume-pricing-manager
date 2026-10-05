@@ -11,6 +11,7 @@ import {
 import { qualifyCustomer, type TierRecord } from "../services/eligibility/tier-engine";
 import { decideAssignment } from "../services/assignment/decide-assignment";
 import { toMinorUnits, formatMoney, bpsToPercentString } from "../lib/money";
+import { PageIntro } from "../components/admin/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -125,17 +126,19 @@ export default function SimulatorPage() {
 
   return (
     <s-page heading="Simulator">
+      <PageIntro>
+        Enter example spend and eligibility flags. Nothing here changes live assignments — use customer
+        tools for approvals and overrides. Currency: {currencyCode}.
+      </PageIntro>
+
       <s-section heading="Preview assignment">
-        <s-paragraph>
-          Enter example spend and eligibility. Nothing here changes live assignments unless you use
-          customer tools. Currency: {currencyCode}.
-        </s-paragraph>
         {!hasTiers ? (
           <s-banner tone="info">
             Create at least one tier before simulating.{" "}
             <s-link href="/app/tiers">Pricing Tiers</s-link>
           </s-banner>
         ) : null}
+        <div className="vpm-panel">
         <Form method="post">
           <s-stack direction="block" gap="base">
             <s-text-field name="spend" label={`Example qualifying spend (${currencyCode})`} value="2500" />
@@ -162,10 +165,12 @@ export default function SimulatorPage() {
             <s-button type="submit">Simulate</s-button>
           </s-stack>
         </Form>
+        </div>
       </s-section>
 
       {result?.ok ? (
         <s-section heading="Result">
+          <div className="vpm-panel vpm-panel--subdued">
           <s-paragraph>
             Spend {result.spendFormatted} → calculated <strong>{result.calculated}</strong> (
             {result.calculatedDiscount}), effective <strong>{result.effective}</strong>
@@ -200,6 +205,7 @@ export default function SimulatorPage() {
               </s-unordered-list>
             </>
           ) : null}
+          </div>
         </s-section>
       ) : null}
     </s-page>

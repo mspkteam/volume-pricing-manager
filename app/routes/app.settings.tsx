@@ -7,6 +7,7 @@ import { ensureShop, parseSpendPolicy } from "../services/shop/shop-service";
 import { getPricingProvider } from "../services/pricing/discount-function-provider";
 import { writeAuditLog } from "../services/audit/audit-log";
 import type { SpendPolicy } from "../lib/policies";
+import { FlashBanner, PageIntro, PricingStatusBadge } from "../components/admin/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -116,8 +117,13 @@ export default function SettingsPage() {
   return (
     <s-page heading="Settings">
       {actionData?.message ? (
-        <s-banner tone={actionData.ok ? "success" : "critical"}>{actionData.message}</s-banner>
+        <FlashBanner message={actionData.message} ok={actionData.ok} />
       ) : null}
+
+      <PageIntro>
+        Shop currency and timezone come from Shopify. Configure spend exclusions, discount behavior,
+        and pricing provider compatibility here.
+      </PageIntro>
 
       <s-section heading="Shop display">
         <s-paragraph>
@@ -127,28 +133,36 @@ export default function SettingsPage() {
       </s-section>
 
       <s-section heading="Pricing provider">
-        <s-paragraph>
-          Provider: {data.providerCapability.displayName} · Status:{" "}
-          <s-badge>{data.shop.pricingStatus}</s-badge> · Compatibility:{" "}
-          {data.shop.pricingCompatibility}
-        </s-paragraph>
-        <s-paragraph>{data.liveCompatibility.message}</s-paragraph>
-        <s-paragraph>
-          Distribution env: {data.distribution} · Pricing writes:{" "}
-          {data.writesEnabled ? "enabled" : "disabled (safe default)"}
-        </s-paragraph>
-        <s-unordered-list>
-          {data.providerCapability.setupSteps.map((step) => (
-            <s-list-item key={step}>{step}</s-list-item>
-          ))}
-        </s-unordered-list>
+        <div className="vpm-panel vpm-stack-tight">
+          <s-paragraph>
+            Provider: <s-text type="strong">{data.providerCapability.displayName}</s-text>
+          </s-paragraph>
+          <PricingStatusBadge
+            status={data.shop.pricingStatus}
+            compatibility={data.shop.pricingCompatibility}
+          />
+          <s-paragraph>{data.liveCompatibility.message}</s-paragraph>
+          <s-paragraph>
+            Distribution: {data.distribution} · Pricing writes:{" "}
+            {data.writesEnabled ? "enabled" : "disabled (safe default)"}
+          </s-paragraph>
+          <ul className="vpm-checklist">
+            {data.providerCapability.setupSteps.map((step) => (
+              <li key={step} className="vpm-checklist-item">
+                <span className="vpm-checklist-icon vpm-checklist-icon--pending" aria-hidden />
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
         <s-banner tone="info">
           Custom-distributed apps need Shopify Plus for Functions. App Store apps can use Functions
-          on all plans. See ARCHITECTURE.md.
+          on all plans.
         </s-banner>
       </s-section>
 
       <s-section heading="App settings">
+        <div className="vpm-panel">
         <Form method="post">
           <input type="hidden" name="intent" value="save" />
           <s-stack direction="block" gap="base">
@@ -179,6 +193,7 @@ export default function SettingsPage() {
             <s-button type="submit">Save settings</s-button>
           </s-stack>
         </Form>
+        </div>
       </s-section>
     </s-page>
   );
