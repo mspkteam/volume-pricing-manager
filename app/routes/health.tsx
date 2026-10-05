@@ -28,7 +28,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       err instanceof Error ? err.message.slice(0, 200) : "unknown";
   }
 
-  // Only return detailed errors when ?debug=1 (still no secrets)
   if (url.searchParams.get("debug") !== "1") {
     delete checks.databaseError;
     delete checks.shopifyAppUrl;

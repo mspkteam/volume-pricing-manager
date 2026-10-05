@@ -2,7 +2,7 @@
   "name": "volume-pricing-manager",
   "private": true,
   "scripts": {
-    "build": "prisma generate && prisma migrate deploy && react-router build",
+    "build": "node scripts/run-with-database-url.mjs npx prisma generate && node scripts/run-with-database-url.mjs npx prisma migrate deploy && react-router build",
     "postinstall": "prisma generate",
     "dev": "shopify app dev",
     "config:link": "shopify app config link",
@@ -13,7 +13,7 @@
     "start": "react-router-serve ./build/server/index.js",
     "worker": "tsx app/worker.ts",
     "docker-start": "npm run setup && npm run start",
-    "setup": "prisma generate && prisma migrate deploy",
+    "setup": "node scripts/run-with-database-url.mjs npx prisma migrate deploy",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "shopify": "shopify",
     "prisma": "prisma",
