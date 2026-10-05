@@ -1,0 +1,36 @@
+query RunInput {
+  cart {
+    buyerIdentity {
+      customer {
+        id
+        metafield(namespace: "$app:volume_pricing", key: "tier") {
+          jsonValue
+        }
+      }
+    }
+    lines {
+      id
+      quantity
+      cost {
+        subtotalAmount {
+          amount
+        }
+      }
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            id
+            productType
+          }
+        }
+      }
+    }
+  }
+  discount {
+    metafield(namespace: "$app:volume_pricing", key: "function_configuration") {
+      jsonValue
+    }
+  }
+}

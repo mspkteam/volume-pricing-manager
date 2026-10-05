@@ -1,0 +1,12 @@
+{
+  "name": "volume-tier-discount",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "shopify": "npm exec -- shopify",
+    "typegen": "npm exec -- shopify app function typegen",
+    "build": "npm exec -- shopify app function build",
+    "test": "node --test ./tests/run.test.js"
+  }
+}

@@ -1,0 +1,65 @@
+# Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = ""
+name = "Volume Pricing Manager"
+application_url = "https://localhost"
+embedded = true
+
+[access_scopes]
+# Least privilege for customer tier pricing automation.
+# read_all_orders is required for a full rolling 12-month history (protected customer data approval).
+scopes = "read_customers,write_customers,read_orders,read_all_orders,read_products,write_discounts,read_discounts,write_products"
+
+[auth]
+redirect_urls = [ "https://localhost/auth/callback" ]
+
+[webhooks]
+api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = ["app/uninstalled"]
+
+  [[webhooks.subscriptions]]
+  topics = ["app/scopes_update"]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders"
+  topics = [
+    "orders/create",
+    "orders/updated",
+    "orders/paid",
+    "orders/cancelled",
+    "orders/edited"
+  ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/refunds"
+  topics = ["refunds/create"]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers"
+  topics = ["customers/create", "customers/update", "customers/delete"]
+
+  # Mandatory compliance topics (enable for App Store / public distribution)
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = ["customers/data_request"]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = ["customers/redact"]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = ["shop/redact"]
+
+[app_proxy]
+# Not used for customer identity — any future storefront endpoints must authenticate separately.
+url = ""
+subpath = ""
+prefix = ""
+
+[pos]
+embedded = false

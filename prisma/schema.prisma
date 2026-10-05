@@ -1,0 +1,444 @@
+// Volume Pricing Manager — PostgreSQL schema
+// All merchant data is scoped by shopDomain to prevent cross-shop access.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+
+  @@index([shop])
+}
+
+/// Per-shop installation and branding settings
+model Shop {
+  id                    String   @id @default(cuid())
+  shopDomain            String   @unique
+  currencyCode          String   @default("USD")
+  timezone              String   @default("America/New_York")
+  displayName           String   @default("Volume Pricing Manager")
+  installedAt           DateTime @default(now())
+  uninstalledAt         DateTime?
+  /// Versioned spend / automation / pricing settings (JSON)
+  settingsVersion       Int      @default(1)
+  spendPolicy           Json
+  automationPolicy      Json
+  pricingProvider       String   @default("discount_function")
+  pricingStatus         PricingSyncStatus @default(NOT_CONFIGURED)
+  pricingCompatibility  PricingCompatibility @default(UNKNOWN)
+  pricingCompatibilityNote String?
+  discountCombination   String   @default("stack_with_product_discounts")
+  notificationPrefs     Json     @default("{}")
+  /// Shopify Functions / automatic discount IDs when configured
+  pricingExternalIds    Json     @default("{}")
+  fallbackTierId        String?
+  historyCoverageMonths Int?
+  historyAccessLimited  Boolean  @default(false)
+  lastSuccessfulSyncAt  DateTime?
+  lastRecalculationAt   DateTime?
+  nextScheduledRunAt    DateTime?
+  importStatus          ImportStatus @default(NOT_STARTED)
+  importProgress        Json?
+  automationPaused      Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  tiers                 PricingTier[]
+  customers             CustomerProfiles[]
+  orders                NormalizedOrders[]
+  webhooks              WebhookEvents[]
+  jobs                  BackgroundJobs[]
+  auditLogs             AuditLogs[]
+  configVersions        ConfigVersions[]
+  pricingSyncJobs       PricingSyncJobs[]
+
+  @@index([shopDomain])
+}
+
+enum PricingSyncStatus {
+  NOT_CONFIGURED
+  READY
+  SYNCING
+  SYNCED
+  FAILED
+  UNSUPPORTED
+}
+
+enum PricingCompatibility {
+  UNKNOWN
+  SUPPORTED
+  UNSUPPORTED
+  SETUP_REQUIRED
+}
+
+enum ImportStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+  FAILED
+  PARTIAL
+}
+
+/// Fully configurable pricing tier — no hardcoded names or enums
+model PricingTier {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  /// Stable identity; renaming never changes this
+  name                  String
+  description           String   @default("")
+  badgeColor            String   @default("#5C6AC4")
+  /// Minimum qualifying spend in shop currency minor units (e.g. cents)
+  minSpendMinor         BigInt   @default(0)
+  /// Percentage discount as basis points (1500 = 15.00%)
+  discountBps           Int      @default(0)
+  requiresApproval      Boolean  @default(false)
+  requiresLicense       Boolean  @default(false)
+  requiresResaleCert    Boolean  @default(false)
+  requiresPurchaseAgreement Boolean @default(false)
+  /// Minimum months of purchase history before tier can apply
+  minPurchaseHistoryMonths Int?
+  allowProjectedVolume  Boolean  @default(false)
+  isActive              Boolean  @default(true)
+  isArchived            Boolean  @default(false)
+  isFallback            Boolean  @default(false)
+  /// Display order only — does not affect qualification precedence
+  displayOrder          Int      @default(0)
+  configVersion         Int      @default(1)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  assignments           CustomerProfiles[] @relation("EffectiveTier")
+  calculatedAssignments CustomerProfiles[] @relation("CalculatedTier")
+  pendingAssignments    CustomerProfiles[] @relation("PendingTier")
+  overrideAssignments   CustomerProfiles[] @relation("OverrideTier")
+  historyAsFrom         TierAssignmentHistory[] @relation("FromTier")
+  historyAsTo           TierAssignmentHistory[] @relation("ToTier")
+
+  @@unique([shopId, name])
+  @@index([shopId, isActive, isArchived])
+  @@index([shopId, minSpendMinor])
+  @@index([shopId, displayOrder])
+}
+
+model CustomerProfiles {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopifyCustomerId     String
+  email                 String?
+  displayName           String?
+  /// Qualifying spend in minor units for current rolling window
+  qualifyingSpendMinor  BigInt   @default(0)
+  includedOrderCount    Int      @default(0)
+  refundDeductionMinor  BigInt   @default(0)
+  windowStart           DateTime?
+  windowEnd             DateTime?
+  spendComplete         Boolean  @default(false)
+  historyStatus         HistoryStatus @default(UNKNOWN)
+
+  calculatedTierId      String?
+  calculatedTier        PricingTier? @relation("CalculatedTier", fields: [calculatedTierId], references: [id])
+  effectiveTierId       String?
+  effectiveTier         PricingTier? @relation("EffectiveTier", fields: [effectiveTierId], references: [id])
+  pendingTierId         String?
+  pendingTier           PricingTier? @relation("PendingTier", fields: [pendingTierId], references: [id])
+  overrideTierId        String?
+  overrideTier          PricingTier? @relation("OverrideTier", fields: [overrideTierId], references: [id])
+
+  businessApproved      Boolean  @default(false)
+  licenseVerified       Boolean  @default(false)
+  resaleCertVerified    Boolean  @default(false)
+  purchaseAgreementVerified Boolean @default(false)
+  projectedVolumeApproved Boolean @default(false)
+  adminNotes            String   @default("")
+  firstOrderAt          DateTime?
+
+  overrideReason        String?
+  overrideExpiresAt     DateTime?
+  overridePausesAutomation Boolean @default(false)
+  overrideSetAt         DateTime?
+  overrideSetBy         String?
+
+  gracePeriodEndsAt     DateTime?
+  nextReviewAt          DateTime?
+  lastCalculatedAt      DateTime?
+  lastAssignedAt        DateTime?
+  assignmentVersion     Int      @default(0)
+
+  pricingSyncStatus     PricingSyncStatus @default(NOT_CONFIGURED)
+  pricingLastSyncedAt   DateTime?
+  pricingLastError      String?
+  pricingExternalRef    String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  orders                NormalizedOrders[]
+  assignmentHistory     TierAssignmentHistory[]
+  pricingSyncJobs       PricingSyncJobs[]
+
+  @@unique([shopId, shopifyCustomerId])
+  @@index([shopId, effectiveTierId])
+  @@index([shopId, businessApproved])
+  @@index([shopId, pricingSyncStatus])
+  @@index([shopId, email])
+}
+
+enum HistoryStatus {
+  UNKNOWN
+  COMPLETE
+  INSUFFICIENT
+  PARTIAL
+}
+
+model NormalizedOrders {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerProfileId     String?
+  customerProfile       CustomerProfiles? @relation(fields: [customerProfileId], references: [id])
+  shopifyOrderId        String
+  shopifyCustomerId     String?
+  name                  String?
+  processedAt           DateTime
+  financialStatus       String
+  fulfillmentStatus     String?
+  cancelledAt           DateTime?
+  test                  Boolean  @default(false)
+  currencyCode          String
+  /// Qualifying merchandise subtotal after discounts, before tax/shipping, in minor units
+  merchandiseMinor      BigInt   @default(0)
+  discountMinor         BigInt   @default(0)
+  taxMinor              BigInt   @default(0)
+  shippingMinor         BigInt   @default(0)
+  refundedMerchandiseMinor BigInt @default(0)
+  /// Final qualifying amount for this order after refunds
+  qualifyingMinor       BigInt   @default(0)
+  salesChannel          String?
+  sourceName            String?
+  rawChecksum           String?
+  lastSyncedAt          DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  lines                 NormalizedOrderLines[]
+  refunds               NormalizedRefunds[]
+
+  @@unique([shopId, shopifyOrderId])
+  @@index([shopId, shopifyCustomerId, processedAt])
+  @@index([shopId, processedAt])
+  @@index([customerProfileId])
+}
+
+model NormalizedOrderLines {
+  id                    String   @id @default(cuid())
+  orderId               String
+  order                 NormalizedOrders @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shopifyLineId         String
+  productId             String?
+  variantId             String?
+  sku                   String?
+  title                 String?
+  quantity              Int
+  /// Unit price * qty after line discounts, shop currency minor units
+  merchandiseMinor      BigInt
+  isGiftCard            Boolean  @default(false)
+  excluded              Boolean  @default(false)
+  collectionIds         String[] @default([])
+
+  @@unique([orderId, shopifyLineId])
+  @@index([orderId])
+}
+
+model NormalizedRefunds {
+  id                    String   @id @default(cuid())
+  orderId               String
+  order                 NormalizedOrders @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shopifyRefundId       String
+  processedAt           DateTime
+  /// Attributable merchandise refund in shop currency minor units
+  merchandiseMinor      BigInt
+  alreadyReflectedInOrder Boolean @default(false)
+
+  @@unique([orderId, shopifyRefundId])
+  @@index([orderId])
+}
+
+model TierAssignmentHistory {
+  id                    String   @id @default(cuid())
+  shopId                String
+  customerProfileId     String
+  customerProfile       CustomerProfiles @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  fromTierId            String?
+  fromTier              PricingTier? @relation("FromTier", fields: [fromTierId], references: [id])
+  toTierId              String?
+  toTier                PricingTier? @relation("ToTier", fields: [toTierId], references: [id])
+  calculatedTierId      String?
+  effectiveTierId       String?
+  changeType            AssignmentChangeType
+  reason                String
+  actor                 String   @default("system")
+  spendSnapshotMinor    BigInt?
+  metadata              Json?
+  createdAt             DateTime @default(now())
+
+  @@index([shopId, createdAt])
+  @@index([customerProfileId, createdAt])
+}
+
+enum AssignmentChangeType {
+  CALCULATED
+  UPGRADE
+  DOWNGRADE
+  OVERRIDE_SET
+  OVERRIDE_EXPIRED
+  APPROVAL_CHANGE
+  MANUAL_REASSIGN
+  ARCHIVE_REASSIGN
+  GRACE_PERIOD
+  REVIEW_SCHEDULED
+  IMPORT
+  FALLBACK
+}
+
+model WebhookEvents {
+  id                    String   @id @default(cuid())
+  shopId                String?
+  shop                  Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopDomain            String
+  topic                 String
+  shopifyWebhookId      String?
+  payloadHash           String
+  payload               Json
+  status                WebhookStatus @default(PENDING)
+  attempts              Int      @default(0)
+  lastError             String?
+  processedAt           DateTime?
+  receivedAt            DateTime @default(now())
+
+  @@unique([shopDomain, topic, payloadHash])
+  @@index([status, receivedAt])
+  @@index([shopDomain, topic])
+}
+
+enum WebhookStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+  DUPLICATE
+}
+
+model BackgroundJobs {
+  id                    String   @id @default(cuid())
+  shopId                String?
+  shop                  Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopDomain            String
+  type                  String
+  payload               Json
+  status                JobStatus @default(PENDING)
+  priority              Int      @default(100)
+  attempts              Int      @default(0)
+  maxAttempts           Int      @default(5)
+  runAfter              DateTime @default(now())
+  lockedAt              DateTime?
+  lockedBy              String?
+  lastError             String?
+  result                Json?
+  idempotencyKey        String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  completedAt           DateTime?
+
+  @@unique([shopDomain, idempotencyKey])
+  @@index([status, runAfter, priority])
+  @@index([shopDomain, type])
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  DEAD
+}
+
+model PricingSyncJobs {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerProfileId     String?
+  customerProfile       CustomerProfiles? @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  configVersion         Int
+  assignmentVersion     Int
+  desiredTierId         String?
+  desiredDiscountBps    Int?
+  status                PricingSyncStatus @default(SYNCING)
+  attempts              Int      @default(0)
+  lastError             String?
+  providerResponse      Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  completedAt           DateTime?
+
+  @@index([shopId, status])
+  @@index([customerProfileId, status])
+}
+
+model ConfigVersions {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  version               Int
+  kind                  String
+  snapshot              Json
+  actor                 String
+  reason                String?
+  createdAt             DateTime @default(now())
+
+  @@unique([shopId, kind, version])
+  @@index([shopId, kind])
+}
+
+model AuditLogs {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  actor                 String
+  action                String
+  entityType            String
+  entityId              String?
+  reason                String?
+  metadata              Json?
+  /// Redacted summary safe for display
+  summary               String
+  createdAt             DateTime @default(now())
+
+  @@index([shopId, createdAt])
+  @@index([shopId, action])
+  @@index([shopId, entityType, entityId])
+}

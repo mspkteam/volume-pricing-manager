@@ -1,0 +1,21 @@
+api_version = "2025-10"
+
+[[extensions]]
+name = "Volume Tier Discount"
+handle = "volume-tier-discount"
+type = "function"
+uid = "volume-tier-discount-0001"
+description = "Applies customer volume pricing tier discounts at checkout from trusted app metafields."
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"
+
+  [[extensions.targeting]]
+  target = "cart.lines.discounts.generate.run"
+  input_query = "src/run.graphql"
+  export = "run"
+
+  [extensions.input.variables]
+  namespace = "$app:volume_pricing"
+  key = "tier_config"
