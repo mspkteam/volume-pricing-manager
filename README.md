@@ -50,9 +50,9 @@ npm run dev      # shopify app dev — embeds in admin
 
 See `shopify.app.toml`:
 
-`read_customers,write_customers,read_orders,read_all_orders,read_products,write_discounts,read_discounts,write_products`
+`read_customers,write_customers,read_orders,read_products,write_discounts,read_discounts,write_products`
 
-Without `read_all_orders` (and approval), historical coverage may be limited — the UI shows **Insufficient history** and will not auto-downgrade by default.
+`read_all_orders` is **not** in the default install scopes — Shopify rejects it until you request and receive approval in Partner Dashboard → API access requests. Without it, history is limited to roughly the last 60 days; the UI shows **Insufficient history** and will not auto-downgrade by default.
 
 ## Scripts
 

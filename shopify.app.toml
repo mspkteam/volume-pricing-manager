@@ -7,8 +7,12 @@ embedded = true
 
 [access_scopes]
 # Least privilege for customer tier pricing automation.
-# read_all_orders is required for a full rolling 12-month history (protected customer data approval).
-scopes = "read_customers,write_customers,read_orders,read_all_orders,read_products,write_discounts,read_discounts,write_products"
+# Default: last ~60 days of orders via read_orders.
+# Do NOT declare read_all_orders until Shopify approves it in Partner Dashboard
+# (API access requests → Read all orders). After approval, add:
+#   ,read_all_orders
+# so a full rolling 12-month history can be imported.
+scopes = "read_customers,write_customers,read_orders,read_products,write_discounts,read_discounts,write_products"
 
 [auth]
 redirect_urls = [ "https://localhost/auth/callback" ]
