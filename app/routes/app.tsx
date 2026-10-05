@@ -36,6 +36,8 @@ export default function App() {
         </Link>
         <Link to="/app/tiers">Pricing Tiers</Link>
         <Link to="/app/customers">Customers</Link>
+        <Link to="/app/forms">Forms</Link>
+        <Link to="/app/applications">Applications</Link>
         <Link to="/app/automation">Automation</Link>
         <Link to="/app/simulator">Simulator</Link>
         <Link to="/app/activity">Activity</Link>

@@ -1,0 +1,194 @@
+.vpm-form {
+  color: var(--vpm-text, #333);
+  max-width: 40rem;
+  margin: 0 auto;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.vpm-form-spacing-compact .vpm-field { margin-bottom: 0.65rem; }
+.vpm-form-spacing-default .vpm-field { margin-bottom: 1rem; }
+.vpm-form-spacing-relaxed .vpm-field { margin-bottom: 1.35rem; }
+
+.vpm-form__title {
+  color: var(--vpm-heading, #121212);
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.vpm-form__desc {
+  margin: 0 0 1.25rem;
+  opacity: 0.9;
+}
+
+.vpm-form__setup,
+.vpm-form__loading,
+.vpm-form__error,
+.vpm-form__success {
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+}
+
+.vpm-form__error {
+  background: #fbeae9;
+  color: #8e1f0b;
+  margin-bottom: 1rem;
+}
+
+.vpm-form__success {
+  background: #eaf7ee;
+  color: #0d5c2e;
+}
+
+.vpm-form__login {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.vpm-step {
+  display: none;
+}
+
+.vpm-step.is-active {
+  display: block;
+}
+
+.vpm-step__title {
+  font-size: 1.125rem;
+  margin: 0 0 1rem;
+  color: var(--vpm-heading, #121212);
+}
+
+.vpm-field[data-width="half"] {
+  display: inline-block;
+  width: calc(50% - 0.4rem);
+  vertical-align: top;
+  margin-right: 0.4rem;
+}
+
+.vpm-field[data-width="third"] {
+  display: inline-block;
+  width: calc(33.333% - 0.4rem);
+  vertical-align: top;
+  margin-right: 0.4rem;
+}
+
+.vpm-field[hidden],
+.vpm-field.is-hidden {
+  display: none !important;
+}
+
+.vpm-field__label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.vpm-field__req {
+  color: #b00020;
+}
+
+.vpm-field__helper {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin: 0.25rem 0 0;
+}
+
+.vpm-field__error {
+  color: #b00020;
+  font-size: 0.8125rem;
+  margin: 0.25rem 0 0;
+}
+
+.vpm-field input[type="text"],
+.vpm-field input[type="email"],
+.vpm-field input[type="tel"],
+.vpm-field input[type="url"],
+.vpm-field input[type="number"],
+.vpm-field input[type="date"],
+.vpm-field input[type="file"],
+.vpm-field select,
+.vpm-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #8c9196;
+  border-radius: 8px;
+  font: inherit;
+  background: #fff;
+  color: inherit;
+}
+
+.vpm-field textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.vpm-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vpm-choice label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-weight: 400;
+}
+
+.vpm-address {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.vpm-form__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.vpm-form__btn {
+  appearance: none;
+  border: 1px solid var(--vpm-btn-bg, #121212);
+  background: var(--vpm-btn-bg, #121212);
+  color: var(--vpm-btn-text, #fff);
+  padding: 0.65rem 1.15rem;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vpm-form__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vpm-form--outline .vpm-form__btn:not(.vpm-form__btn--secondary) {
+  background: transparent;
+  color: var(--vpm-btn-bg, #121212);
+}
+
+.vpm-form__btn--secondary {
+  background: transparent;
+  color: var(--vpm-text, #333);
+  border-color: #c9cccf;
+}
+
+.vpm-progress {
+  font-size: 0.8125rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.75;
+}
+
+@media (max-width: 640px) {
+  .vpm-field[data-width="half"],
+  .vpm-field[data-width="third"] {
+    display: block;
+    width: 100%;
+    margin-right: 0;
+  }
+}

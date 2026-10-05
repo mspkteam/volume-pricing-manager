@@ -99,6 +99,37 @@ export default function HowItWorksPage() {
         </s-paragraph>
       </s-section>
 
+      <s-section heading="How Forms Work">
+        <s-paragraph>
+          Forms are a publishable storefront intake layer — not automatic tier assignment. Merchants
+          build fields in the admin builder, publish a versioned schema, and embed the theme app block
+          with a pasted form handle (Theme Editor cannot dynamically list forms).
+        </s-paragraph>
+        <s-unordered-list>
+          <s-list-item>
+            Storefront loads schema from app proxy <code>/apps/volume-pricing/forms/{"{handle}"}</code>.
+          </s-list-item>
+          <s-list-item>
+            Submissions are reviewed in Applications. Approving eligibility is separate from pricing
+            sync and does not auto-grant a requested tier.
+          </s-list-item>
+          <s-list-item>
+            Optional audited starting-tier overrides (projected volume) require a reason and are
+            logged. Spend-based qualification still runs through the existing tier engine.
+          </s-list-item>
+          <s-list-item>
+            File uploads need private object storage env vars; until configured, upload fields show a
+            setup message and cannot accept documents.
+          </s-list-item>
+        </s-unordered-list>
+        <s-stack direction="inline" gap="base">
+          <s-button href="/app/forms">Open forms</s-button>
+          <s-button href="/app/applications" variant="secondary">
+            Applications inbox
+          </s-button>
+        </s-stack>
+      </s-section>
+
       <s-section heading="FAQ">
         <s-paragraph>
           <strong>Why was a customer downgraded with no new order?</strong> Purchases left the

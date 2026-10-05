@@ -1,0 +1,114 @@
+{% comment %}
+  Volume Pricing Form — loads published schema via app proxy.
+  Merchants paste the form handle (Theme Editor cannot list forms dynamically).
+{% endcomment %}
+
+{% assign handle = block.settings.form_handle | strip %}
+{% assign scope_id = block.id | replace: '/', '_' %}
+
+<div
+  id="vpm-form-{{ scope_id }}"
+  class="vpm-form vpm-form--{{ block.settings.button_style }} vpm-form-spacing-{{ block.settings.section_spacing }}"
+  data-vpm-form
+  data-block-id="{{ block.id }}"
+  data-form-handle="{{ handle | escape }}"
+  data-proxy-base="/apps/volume-pricing/forms/{{ handle | url_encode }}"
+  data-show-heading="{{ block.settings.show_heading }}"
+  data-show-description="{{ block.settings.show_description }}"
+  style="
+    --vpm-heading: {{ block.settings.heading_color }};
+    --vpm-text: {{ block.settings.text_color }};
+    --vpm-btn-bg: {{ block.settings.button_background }};
+    --vpm-btn-text: {{ block.settings.button_text_color }};
+  "
+>
+  {% if handle == blank %}
+    <p class="vpm-form__setup">Add a form handle in the block settings (from the app → Forms → Embed).</p>
+  {% else %}
+    <div class="vpm-form__loading" data-vpm-loading>Loading form…</div>
+    <div class="vpm-form__error" data-vpm-error hidden></div>
+    <div class="vpm-form__success" data-vpm-success hidden></div>
+    <form class="vpm-form__body" data-vpm-body hidden novalidate>
+      <div data-vpm-steps></div>
+      <div class="vpm-form__nav" data-vpm-nav>
+        <button type="button" class="vpm-form__btn vpm-form__btn--secondary" data-vpm-prev hidden>Back</button>
+        <button type="button" class="vpm-form__btn" data-vpm-next hidden>Continue</button>
+        <button type="submit" class="vpm-form__btn" data-vpm-submit>Submit</button>
+      </div>
+    </form>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "t:name",
+  "target": "section",
+  "stylesheet": "vpm-form.css",
+  "javascript": "vpm-form.js",
+  "settings": [
+    {
+      "type": "text",
+      "id": "form_handle",
+      "label": "t:settings.form_handle",
+      "info": "Paste the handle from the app Forms → Embed page. Theme Editor cannot list forms dynamically."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_heading",
+      "label": "t:settings.show_heading",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:settings.show_description",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "t:settings.heading_color",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "t:settings.text_color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "button_background",
+      "label": "t:settings.button_background",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "t:settings.button_text_color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "select",
+      "id": "section_spacing",
+      "label": "t:settings.section_spacing",
+      "options": [
+        { "value": "compact", "label": "Compact" },
+        { "value": "default", "label": "Default" },
+        { "value": "relaxed", "label": "Relaxed" }
+      ],
+      "default": "default"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "t:settings.button_style",
+      "options": [
+        { "value": "solid", "label": "t:settings.button_style.options.solid.label" },
+        { "value": "outline", "label": "t:settings.button_style.options.outline.label" }
+      ],
+      "default": "solid"
+    }
+  ]
+}
+{% endschema %}

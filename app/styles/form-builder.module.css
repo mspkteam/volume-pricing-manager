@@ -1,0 +1,213 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+  padding: 0.875rem 1rem;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  border: 1px solid var(--p-color-border-secondary, #e1e3e5);
+  border-radius: 12px;
+}
+
+.toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.toolbar input[type="text"],
+.toolbar input:not([type="checkbox"]),
+.toolbar select,
+.toolbar textarea,
+.settingsForm input,
+.settingsForm select,
+.settingsForm textarea,
+.mapRow select,
+.blockLabel textarea,
+.blockLabel input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #8c9196;
+  border-radius: 8px;
+  font: inherit;
+  min-width: 10rem;
+}
+
+.previewToggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.previewToggle button {
+  border: 1px solid #c9cccf;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.previewToggle .active {
+  background: #303030;
+  color: #fff;
+  border-color: #303030;
+}
+
+.builder {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr) 18rem;
+  gap: 0.75rem;
+  min-height: 28rem;
+}
+
+.library,
+.canvas,
+.settings {
+  border: 1px solid #e1e3e5;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.75rem;
+  overflow: auto;
+  max-height: 70vh;
+}
+
+.library h3,
+.canvas h3,
+.settings h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.libBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #e1e3e5;
+  border-radius: 8px;
+  background: #fafafa;
+  cursor: pointer;
+  font: inherit;
+}
+
+.libBtn small {
+  color: #616161;
+}
+
+.canvasItem {
+  border: 1px solid #e1e3e5;
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.45rem;
+  background: #fff;
+  cursor: grab;
+}
+
+.canvasItem.selected {
+  border-color: #005bd3;
+  box-shadow: 0 0 0 1px #005bd3;
+}
+
+.canvasItemHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.moveBtns {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
+.moveBtns button {
+  border: 1px solid #c9cccf;
+  background: #fff;
+  border-radius: 6px;
+  width: 1.75rem;
+  height: 1.75rem;
+  cursor: pointer;
+}
+
+.emptyCanvas {
+  color: #616161;
+  font-size: 0.875rem;
+}
+
+.settingsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+}
+
+.settingsForm label,
+.mapRow,
+.blockLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: #616161;
+  margin: 0.25rem 0;
+}
+
+.previewFrame {
+  max-width: 40rem;
+  margin: 0 auto 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #e1e3e5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.previewFrame.mobile {
+  max-width: 22rem;
+}
+
+.previewField {
+  margin-bottom: 0.75rem;
+}
+
+.previewField[data-width="half"] {
+  display: inline-block;
+  width: calc(50% - 0.5rem);
+  vertical-align: top;
+  margin-right: 0.5rem;
+}
+
+.previewField label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.previewField input {
+  padding: 0.45rem;
+  border: 1px solid #8c9196;
+  border-radius: 8px;
+}
+
+@media (max-width: 960px) {
+  .builder {
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+
+  .library,
+  .canvas,
+  .settings {
+    max-height: none;
+  }
+}

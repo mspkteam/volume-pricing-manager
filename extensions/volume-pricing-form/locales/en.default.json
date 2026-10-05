@@ -1,0 +1,40 @@
+{
+  "name": "Volume Pricing Form",
+  "settings": {
+    "form_handle": {
+      "label": "Form handle"
+    },
+    "show_heading": {
+      "label": "Show form title"
+    },
+    "show_description": {
+      "label": "Show form description"
+    },
+    "heading_color": {
+      "label": "Heading color"
+    },
+    "text_color": {
+      "label": "Text color"
+    },
+    "button_background": {
+      "label": "Button background"
+    },
+    "button_text_color": {
+      "label": "Button text color"
+    },
+    "section_spacing": {
+      "label": "Section spacing"
+    },
+    "button_style": {
+      "label": "Button style",
+      "options": {
+        "solid": {
+          "label": "Solid"
+        },
+        "outline": {
+          "label": "Outline"
+        }
+      }
+    }
+  }
+}

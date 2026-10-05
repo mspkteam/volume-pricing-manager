@@ -74,6 +74,9 @@ model Shop {
   auditLogs             AuditLogs[]
   configVersions        ConfigVersions[]
   pricingSyncJobs       PricingSyncJobs[]
+  applicationForms      ApplicationForms[]
+  formSubmissions       FormSubmissions[]
+  formUploads           FormUploads[]
 
   @@index([shopDomain])
 }
@@ -200,6 +203,7 @@ model CustomerProfiles {
   orders                NormalizedOrders[]
   assignmentHistory     TierAssignmentHistory[]
   pricingSyncJobs       PricingSyncJobs[]
+  formSubmissions       FormSubmissions[]
 
   @@unique([shopId, shopifyCustomerId])
   @@index([shopId, effectiveTierId])
@@ -442,4 +446,160 @@ model AuditLogs {
   @@index([shopId, createdAt])
   @@index([shopId, action])
   @@index([shopId, entityType, entityId])
+}
+
+/// Merchant-defined storefront form (draft + published versions)
+model ApplicationForms {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  /// Stable public handle for theme block embedding (unique per shop)
+  handle                String
+  title                 String
+  description           String   @default("")
+  status                FormLifecycleStatus @default(DRAFT)
+  /// wholesale | general — wholesale requires business mappings before publish
+  purpose               FormPurpose @default(GENERAL)
+  requireLogin          Boolean  @default(true)
+  /// Draft schema (fields, sections, conditions, mappings, settings)
+  draftSchema           Json
+  draftVersion          Int      @default(1)
+  publishedVersion      Int?
+  /// Cache-busting token for storefront widget
+  publishedCacheKey     String?
+  publishedAt           DateTime?
+  publishedSchema       Json?
+  archivedAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  versions              FormVersions[]
+  submissions           FormSubmissions[]
+
+  @@unique([shopId, handle])
+  @@index([shopId, status])
+  @@index([shopId, updatedAt])
+}
+
+enum FormLifecycleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FormPurpose {
+  GENERAL
+  WHOLESALE
+}
+
+model FormVersions {
+  id                    String   @id @default(cuid())
+  formId                String
+  form                  ApplicationForms @relation(fields: [formId], references: [id], onDelete: Cascade)
+  version               Int
+  schema                Json
+  cacheKey              String
+  publishedBy           String
+  note                  String?
+  createdAt             DateTime @default(now())
+
+  submissions           FormSubmissions[]
+
+  @@unique([formId, version])
+  @@index([formId, createdAt])
+}
+
+model FormSubmissions {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  formId                String
+  form                  ApplicationForms @relation(fields: [formId], references: [id], onDelete: Cascade)
+  formVersionId         String?
+  formVersion           FormVersions? @relation(fields: [formVersionId], references: [id])
+  publishedVersion      Int
+  schemaCacheKey        String
+  /// Authenticated Shopify customer GID/id when login-required
+  shopifyCustomerId     String?
+  customerProfileId     String?
+  customerProfile       CustomerProfiles? @relation(fields: [customerProfileId], references: [id])
+  /// guest | authenticated | linked
+  identityKind          FormIdentityKind @default(GUEST)
+  applicantEmail        String?
+  applicantName         String?
+  companyName           String?
+  /// Structured answers keyed by stable field id
+  answers               Json
+  /// Label/option snapshots at submit time
+  fieldSnapshots        Json
+  requestedTierId       String?
+  requestedTierSnapshot Json?
+  mappedBusiness        Json?
+  consents              Json?
+  documentRefs          Json?
+  status                FormApplicationStatus @default(PENDING)
+  customerMessage       String?
+  internalNotes         String   @default("")
+  reviewHistory         Json     @default("[]")
+  idempotencyKey        String?
+  submittedAt           DateTime @default(now())
+  reviewedAt            DateTime?
+  reviewedBy            String?
+  revisionGroupId       String?
+  revisionNumber        Int      @default(1)
+  supersededById        String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  uploads               FormUploads[]
+
+  @@unique([shopId, idempotencyKey])
+  @@index([shopId, formId, status, submittedAt])
+  @@index([shopId, shopifyCustomerId])
+  @@index([shopId, applicantEmail])
+  @@index([customerProfileId])
+}
+
+enum FormIdentityKind {
+  GUEST
+  AUTHENTICATED
+  LINKED
+}
+
+enum FormApplicationStatus {
+  PENDING
+  NEEDS_INFORMATION
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+model FormUploads {
+  id                    String   @id @default(cuid())
+  shopId                String
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  submissionId          String?
+  submission            FormSubmissions? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  fieldId               String
+  originalFilename      String
+  contentType           String
+  byteSize              Int
+  storageProvider       String
+  storageKey            String
+  checksumSha256        String?
+  scanStatus            FormUploadScanStatus @default(PENDING)
+  quarantine            Boolean  @default(false)
+  uploadedByCustomerId  String?
+  createdAt             DateTime @default(now())
+  deletedAt             DateTime?
+
+  @@index([shopId, submissionId])
+  @@index([shopId, storageKey])
+}
+
+enum FormUploadScanStatus {
+  PENDING
+  CLEAN
+  REJECTED
+  UNAVAILABLE
 }

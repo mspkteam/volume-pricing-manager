@@ -65,5 +65,10 @@ api_version = "2025-10"
   uri = "/webhooks/shop/redact"
   compliance_topics = ["shop/redact"]
 
+[app_proxy]
+url = "https://volume-pricing-manager.vercel.app/proxy"
+subpath = "volume-pricing"
+prefix = "apps"
+
 [pos]
 embedded = false
