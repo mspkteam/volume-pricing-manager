@@ -24,6 +24,12 @@ updates:
       semver-patch-days: 14
 
     ignore:
+      # Shopify session storage requires Prisma 6 peer deps (^6.19.0).
+      # Do not open Prisma 7 upgrades until @shopify/shopify-app-session-storage-prisma supports it.
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/client'
+        update-types: ['version-update:semver-major']
       # Hold the react-router family at the version pinned in package.json.
       # react-router 7.18.3 tightened action-origin validation from host-only to
       # full origin (scheme + host + port) in remix-run/react-router#15420. Under
