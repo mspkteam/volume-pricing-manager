@@ -21,9 +21,10 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>Volume Pricing Manager</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Automated customer pricing tiers from qualifying purchase spend — for HVAC and trade
+          wholesale merchants.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -39,16 +40,16 @@ export default function App() {
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Configurable tiers</strong>. Merchants define names, thresholds, discounts, and
+            approval rules — no hardcoded Tier A/B/C.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Rolling spend</strong>. Qualifying purchases drive upgrades, grace periods, and
+            scheduled reviews.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Checkout sync</strong>. Pricing status stays separate from tier assignment until
+            Shopify Functions compatibility is verified.
           </li>
         </ul>
       </div>

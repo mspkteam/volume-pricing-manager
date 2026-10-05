@@ -1,8 +1,8 @@
 # Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = ""
+client_id = "97480e97d6bd60193b5e48196127411a"
 name = "Volume Pricing Manager"
-application_url = "https://localhost"
+application_url = "https://volume-pricing-manager.vercel.app"
 embedded = true
 
 [access_scopes]
@@ -15,7 +15,13 @@ embedded = true
 scopes = "read_customers,write_customers,read_orders,read_products,write_discounts,read_discounts,write_products"
 
 [auth]
-redirect_urls = [ "https://localhost/auth/callback" ]
+redirect_urls = [
+  "https://volume-pricing-manager.vercel.app/auth/callback",
+  "https://volume-pricing-manager.vercel.app/auth/shop",
+  "https://volume-pricing-manager.vercel.app/auth/login",
+  "https://volume-pricing-manager.vercel.app/auth/session-token",
+  "https://volume-pricing-manager.vercel.app/auth/exit-iframe"
+]
 
 [webhooks]
 api_version = "2025-10"
@@ -58,12 +64,6 @@ api_version = "2025-10"
   [[webhooks.subscriptions]]
   uri = "/webhooks/shop/redact"
   compliance_topics = ["shop/redact"]
-
-[app_proxy]
-# Not used for customer identity — any future storefront endpoints must authenticate separately.
-url = ""
-subpath = ""
-prefix = ""
 
 [pos]
 embedded = false
