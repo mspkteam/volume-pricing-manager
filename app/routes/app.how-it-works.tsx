@@ -99,6 +99,31 @@ export default function HowItWorksPage() {
         </s-paragraph>
       </s-section>
 
+      <s-section heading="How Wholesale Access Works (Clay-like, automated)">
+        <s-paragraph>
+          This app is designed to replace Clay B2B Wholesale + Clay B2B Lock with automated tiers:
+          apply → approve → tag sync → storefront prices unlock → spend keeps tiers updated.
+        </s-paragraph>
+        <s-unordered-list>
+          <s-list-item>
+            Publish a form and embed it on the Applications page (replace the Clay registration block
+            when ready).
+          </s-list-item>
+          <s-list-item>
+            On approval, the app sets business eligibility, runs the tier engine, and syncs Shopify
+            tags (<code>vpm-approved</code>, tier name, <code>vpm-pct-N</code>).
+          </s-list-item>
+          <s-list-item>
+            The theme shows discounts from those tags and locks prices from non-approved shoppers.
+          </s-list-item>
+          <s-list-item>
+            Checkout Discount Function sync is separate and stays gated until pricing writes are
+            verified — tags still unlock PDP pricing without it.
+          </s-list-item>
+        </s-unordered-list>
+        <s-button href="/app/wholesale">Wholesale access settings</s-button>
+      </s-section>
+
       <s-section heading="How Forms Work">
         <s-paragraph>
           Forms are a publishable storefront intake layer — not automatic tier assignment. Merchants

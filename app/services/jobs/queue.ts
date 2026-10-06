@@ -150,5 +150,6 @@ export const JOB_TYPES = {
   RECONCILE_ORDERS: "reconcile_orders",
   SYNC_PRICING_CUSTOMER: "sync_pricing_customer",
   SYNC_PRICING_SHOP: "sync_pricing_shop",
+  SYNC_WHOLESALE_ACCESS: "sync_wholesale_access",
   EXPIRE_OVERRIDES: "expire_overrides",
 } as const;

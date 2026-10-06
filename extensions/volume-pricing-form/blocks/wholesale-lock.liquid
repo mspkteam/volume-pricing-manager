@@ -1,0 +1,79 @@
+{% comment %}
+  App-block wrapper around VPM lock messaging for Theme Editor placement.
+{% endcomment %}
+
+<div class="vpm-wholesale-lock" {{ block.shopify_attributes }}>
+  {% if customer %}
+    {% assign unlocked = false %}
+    {% for tag in customer.tags %}
+      {% assign tag_down = tag | downcase | strip %}
+      {% if tag_down == 'vpm-approved' or tag_down == 'wholesale' or tag_down == 'distributor' or tag_down == 'retailer' %}
+        {% assign unlocked = true %}
+      {% endif %}
+      {% if tag_down contains 'vpm-pct-' %}
+        {% assign unlocked = true %}
+      {% endif %}
+    {% endfor %}
+    {% if unlocked %}
+      {% if block.settings.show_when_unlocked %}
+        <p>{{ block.settings.unlocked_message }}</p>
+      {% endif %}
+    {% else %}
+      <div class="vpm-wholesale-lock__msg">
+        {{ block.settings.locked_message }}
+        {% if block.settings.apply_url != blank %}
+          <p><a href="{{ block.settings.apply_url }}">Apply for wholesale access</a></p>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="vpm-wholesale-lock__msg">
+      {{ block.settings.guest_message }}
+      <p>
+        <a href="{{ routes.account_login_url }}">Log in</a>
+        {% if block.settings.apply_url != blank %}
+          or <a href="{{ block.settings.apply_url }}">apply</a>
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "VPM wholesale lock",
+  "target": "section",
+  "settings": [
+    {
+      "type": "richtext",
+      "id": "guest_message",
+      "label": "Guest message",
+      "default": "<p>Log in to view wholesale pricing.</p>"
+    },
+    {
+      "type": "richtext",
+      "id": "locked_message",
+      "label": "Logged-in but not approved",
+      "default": "<p>Wholesale pricing is available to approved customers only.</p>"
+    },
+    {
+      "type": "text",
+      "id": "unlocked_message",
+      "label": "Unlocked message",
+      "default": "Wholesale pricing unlocked for your account."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_when_unlocked",
+      "label": "Show message when unlocked",
+      "default": false
+    },
+    {
+      "type": "url",
+      "id": "apply_url",
+      "label": "Apply URL",
+      "default": "/pages/applications"
+    }
+  ]
+}
+{% endschema %}

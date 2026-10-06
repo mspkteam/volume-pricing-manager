@@ -1,0 +1,113 @@
+{% comment %}
+  Theme app block — wholesale price badge from VPM-managed customer tags.
+{% endcomment %}
+
+{% liquid
+  assign vpm_discount = 0
+  assign vpm_label = blank
+  assign unlocked = false
+
+  if customer
+    for tag in customer.tags
+      assign tag_down = tag | downcase | strip
+      if tag_down == 'vpm-approved' or tag_down == 'wholesale' or tag_down == 'distributor' or tag_down == 'retailer'
+        assign unlocked = true
+      endif
+      if tag_down contains 'vpm-pct-'
+        assign unlocked = true
+        assign vpm_discount = tag_down | remove: 'vpm-pct-' | plus: 0
+      endif
+      if tag_down == 'wholesale' and vpm_discount == 0
+        assign vpm_discount = 30
+        assign vpm_label = 'Wholesale Pricing Active'
+      elsif tag_down == 'distributor' and vpm_discount == 0
+        assign vpm_discount = 20
+        assign vpm_label = 'Distributor Pricing Active'
+      elsif tag_down == 'retailer' and vpm_discount == 0
+        assign vpm_discount = 10
+        assign vpm_label = 'Retailer Pricing Active'
+      endif
+    endfor
+    if vpm_discount > 0 and vpm_label == blank
+      assign vpm_label = 'Volume Pricing Active'
+    endif
+  endif
+%}
+
+<div
+  class="vpm-wholesale-price"
+  {{ block.shopify_attributes }}
+  style="
+    --vpm-text: {{ block.settings.text_color }};
+    --vpm-accent: {{ block.settings.accent_color }};
+    margin-block: {{ block.settings.spacing }}px;
+  "
+>
+  {% if vpm_discount > 0 %}
+    <p class="vpm-wholesale-price__badge" style="color: var(--vpm-accent); font-weight: 600;">
+      {{ vpm_label }} ({{ vpm_discount }}% Off Applied)
+    </p>
+    {% if block.settings.show_hint %}
+      <p class="vpm-wholesale-price__hint" style="color: var(--vpm-text); font-size: 0.875rem;">
+        Your automated volume pricing tier is active.
+      </p>
+    {% endif %}
+  {% elsif customer %}
+    <p class="vpm-wholesale-price__locked" style="color: var(--vpm-text);">
+      {{ block.settings.pending_message }}
+    </p>
+  {% else %}
+    <p class="vpm-wholesale-price__guest" style="color: var(--vpm-text);">
+      <a href="{{ routes.account_login_url }}">Log in</a>
+      or <a href="{{ block.settings.apply_url }}">apply for wholesale</a> to see your pricing.
+    </p>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "VPM wholesale price",
+  "target": "section",
+  "settings": [
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#0b5fff"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "label": "Spacing",
+      "min": 0,
+      "max": 48,
+      "step": 4,
+      "default": 12
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hint",
+      "label": "Show hint",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "pending_message",
+      "label": "Logged-in without tier message",
+      "default": "Your wholesale application is pending approval or has no active tier yet."
+    },
+    {
+      "type": "url",
+      "id": "apply_url",
+      "label": "Apply link",
+      "default": "/pages/applications"
+    }
+  ]
+}
+{% endschema %}

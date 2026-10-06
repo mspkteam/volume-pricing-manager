@@ -62,9 +62,16 @@ async function handleJob(job: Awaited<ReturnType<typeof claimNextJobs>>[number])
     case JOB_TYPES.SYNC_PRICING_CUSTOMER: {
       const shop = await ensureShop(prisma, job.shopDomain);
       const writesEnabled = process.env.PRICING_WRITES_ENABLED === "true";
-      const provider = getPricingProvider(shop.pricingProvider, null, writesEnabled);
+      let admin = null as Awaited<ReturnType<typeof unauthenticated.admin>>["admin"] | null;
+      try {
+        ({ admin } = await unauthenticated.admin(job.shopDomain));
+      } catch {
+        admin = null;
+      }
+      const provider = getPricingProvider(shop.pricingProvider, admin, writesEnabled);
       const customer = await prisma.customerProfiles.findFirst({
         where: { id: String(payload.customerProfileId), shopId: shop.id },
+        include: { effectiveTier: true },
       });
       if (!customer) break;
 
@@ -78,8 +85,8 @@ async function handleJob(job: Awaited<ReturnType<typeof claimNextJobs>>[number])
         shopDomain: job.shopDomain,
         shopifyCustomerId: customer.shopifyCustomerId,
         tierId: (payload.tierId as string | null) ?? customer.effectiveTierId,
-        discountBps: Number(payload.discountBps ?? 0),
-        tierName: null,
+        discountBps: Number(payload.discountBps ?? customer.effectiveTier?.discountBps ?? 0),
+        tierName: (payload.tierName as string | null) ?? customer.effectiveTier?.name ?? null,
         configVersion: Number(payload.configVersion ?? shop.settingsVersion),
         assignmentVersion: expectedVersion,
       });
@@ -109,9 +116,85 @@ async function handleJob(job: Awaited<ReturnType<typeof claimNextJobs>>[number])
         },
       });
 
+      // Always sync Clay-like access tags (works even when Function writes are off)
+      try {
+        const { syncCustomerWholesaleAccess } = await import("./services/wholesale/access-sync");
+        await syncCustomerWholesaleAccess(prisma, admin, {
+          shopId: shop.id,
+          shopDomain: job.shopDomain,
+          customerProfileId: customer.id,
+          actor: "worker",
+        });
+      } catch (tagErr) {
+        await writeAuditLog(prisma, {
+          shopId: shop.id,
+          actor: "worker",
+          action: "wholesale.tags_failed",
+          entityType: "CustomerProfile",
+          entityId: customer.id,
+          summary: tagErr instanceof Error ? tagErr.message : "Tag sync failed",
+        });
+      }
+
       if (result.status === "FAILED") {
         throw new Error(result.message);
       }
+      break;
+    }
+    case JOB_TYPES.SYNC_WHOLESALE_ACCESS: {
+      const shop = await ensureShop(prisma, job.shopDomain);
+      let admin = null as Awaited<ReturnType<typeof unauthenticated.admin>>["admin"] | null;
+      try {
+        ({ admin } = await unauthenticated.admin(job.shopDomain));
+      } catch {
+        admin = null;
+      }
+      const { syncCustomerWholesaleAccess } = await import("./services/wholesale/access-sync");
+      await syncCustomerWholesaleAccess(prisma, admin, {
+        shopId: shop.id,
+        shopDomain: job.shopDomain,
+        customerProfileId: String(payload.customerProfileId),
+        actor: "worker",
+      });
+      break;
+    }
+    case JOB_TYPES.SYNC_PRICING_SHOP: {
+      const shop = await ensureShop(prisma, job.shopDomain);
+      const writesEnabled = process.env.PRICING_WRITES_ENABLED === "true";
+      let admin = null as Awaited<ReturnType<typeof unauthenticated.admin>>["admin"] | null;
+      try {
+        ({ admin } = await unauthenticated.admin(job.shopDomain));
+      } catch {
+        admin = null;
+      }
+      const tiers = await prisma.pricingTier.findMany({
+        where: { shopId: shop.id, isArchived: false },
+      });
+      const provider = getPricingProvider(shop.pricingProvider, admin, writesEnabled);
+      const result = await provider.syncShopConfig({
+        shopDomain: job.shopDomain,
+        currencyCode: shop.currencyCode,
+        configVersion: shop.settingsVersion,
+        discountCombination: shop.discountCombination,
+        externalIds: (shop.pricingExternalIds as Record<string, string>) || {},
+        tiers: tiers.map((t) => ({
+          id: t.id,
+          name: t.name,
+          discountBps: t.discountBps,
+          isActive: t.isActive,
+        })),
+        shopGid: (payload.shopGid as string | undefined) ?? undefined,
+        discountGid: (shop.pricingExternalIds as { discountGid?: string } | null)?.discountGid,
+      });
+      await prisma.shop.update({
+        where: { id: shop.id },
+        data: {
+          pricingStatus: result.status,
+          pricingCompatibility: result.compatibility,
+          pricingCompatibilityNote: result.message,
+        },
+      });
+      if (result.status === "FAILED") throw new Error(result.message);
       break;
     }
     case JOB_TYPES.PROCESS_WEBHOOK: {

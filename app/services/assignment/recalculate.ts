@@ -172,10 +172,22 @@ export async function recalculateCustomer(
         customerProfileId: customer.id,
         tierId: decision.effectiveTierId,
         discountBps: tier?.discountBps ?? 0,
+        tierName: tier?.name ?? null,
         assignmentVersion,
         configVersion: shop.settingsVersion,
       },
       idempotencyKey: `sync-pricing:${customer.id}:${assignmentVersion}`,
+    });
+  }
+
+  // Clay-like storefront access: always refresh tags after assignment/eligibility calc
+  if (args.enqueuePricingSync !== false) {
+    await enqueueJob(prisma, {
+      shopDomain: args.shopDomain,
+      shopId: args.shopId,
+      type: JOB_TYPES.SYNC_WHOLESALE_ACCESS,
+      payload: { customerProfileId: customer.id },
+      idempotencyKey: `sync-access:${customer.id}:${assignmentVersion}:${customer.businessApproved}:${decision.effectiveTierId ?? "none"}`,
     });
   }
 

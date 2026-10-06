@@ -5,15 +5,11 @@
  * - Public App Store apps with Functions: available on all Shopify plans.
  * - Custom-distributed apps with Functions: Shopify Plus (or Enterprise) only.
  *
- * Until plan + distribution are verified, status remains SETUP_REQUIRED /
- * NOT_CONFIGURED and no live checkout writes are attempted in unverified mode.
- *
  * Approach:
  * - Automatic app discount owned by a Discount Function extension.
- * - Function reads customer metafield `$app:volume_pricing.tier` (stable tier ID + bps)
- *   and discount configuration metafield listing valid tier IDs → discount bps.
+ * - Function reads customer metafield `$app:volume_pricing.tier`
+ *   and discount metafield `$app:volume_pricing.function_configuration`.
  * - Rejects browser-supplied discount percentages; only trusted metafields apply.
- * - Basis: Shopify selling price (cart line cost), not compare-at / MSRP.
  */
 
 import type {
@@ -31,7 +27,7 @@ export const discountFunctionCapability = {
   displayName: "Shopify Discount Function",
   description:
     "Applies an automatic percentage discount at checkout based on the customer's app-managed tier metafield. Deterministic, no network calls during checkout.",
-  requiresShopifyPlus: false, // Plus required only for custom distribution
+  requiresShopifyPlus: false,
   requiresAppStoreDistributionForNonPlus: true,
   maxTiers: null,
   appliesAtCheckout: true,
@@ -67,7 +63,6 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
   constructor(
     private admin: AdminGraphql | null,
     private options: {
-      /** When false, never write to Shopify — simulation / setup-required mode */
       writesEnabled: boolean;
       functionHandle?: string;
     } = { writesEnabled: false },
@@ -84,7 +79,7 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
         status: "NOT_CONFIGURED",
         compatibility: "SETUP_REQUIRED",
         message:
-          "Pricing integration requires verification of app distribution and Shopify Functions availability. Tier automation works independently; checkout discounts stay Setup required until verified.",
+          "Pricing integration requires verification of app distribution and Shopify Functions availability. Tier automation and wholesale tags work independently; checkout Function discounts stay Setup required until verified.",
       };
     }
 
@@ -96,7 +91,7 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
         status: "UNSUPPORTED",
         compatibility: "UNSUPPORTED",
         message:
-          "Custom-distributed apps can only use Shopify Functions on Shopify Plus or Enterprise. This store's plan does not appear to qualify. Consider App Store distribution, B2B catalogs (if applicable), or a documented compatible pricing app.",
+          "Custom-distributed apps can only use Shopify Functions on Shopify Plus or Enterprise. Wholesale tag-based storefront pricing can still run without Functions.",
       };
     }
 
@@ -134,14 +129,46 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
       configVersion: config.configVersion,
       currencyCode: config.currencyCode,
       discountCombination: config.discountCombination,
-      /** Map of stable tier ID → discount basis points; Function rejects unknown IDs */
       tiers: Object.fromEntries(
         config.tiers.filter((t) => t.isActive).map((t) => [t.id, t.discountBps]),
       ),
     });
 
-    // Upsert shop-level configuration metafield used by the Function via discount owner.
-    // Full automatic discount create/update is performed when functionHandle is known.
+    const shopGid =
+      config.shopGid ||
+      (await this.resolveShopGid()) ||
+      config.externalIds?.shopGid;
+    const discountGid = config.discountGid || config.externalIds?.discountGid;
+
+    const metafields: Array<Record<string, string>> = [];
+    if (shopGid) {
+      metafields.push({
+        ownerId: shopGid,
+        namespace: "$app:volume_pricing",
+        key: "tier_config",
+        type: "json",
+        value: metafieldValue,
+      });
+    }
+    if (discountGid) {
+      metafields.push({
+        ownerId: discountGid,
+        namespace: "$app:volume_pricing",
+        key: "function_configuration",
+        type: "json",
+        value: metafieldValue,
+      });
+    }
+
+    if (!metafields.length) {
+      return {
+        status: "FAILED",
+        compatibility: "SUPPORTED",
+        message:
+          "Cannot sync shop config: missing Shop GID and automatic discount GID. Create the automatic discount first.",
+      };
+    }
+
     const response = await this.admin.graphql(
       `#graphql
       mutation volumePricingShopMetafield($metafields: [MetafieldsSetInput!]!) {
@@ -150,19 +177,7 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
           userErrors { field message }
         }
       }`,
-      {
-        variables: {
-          metafields: [
-            {
-              ownerId: `gid://shopify/Shop/`, // resolved by caller via shop query in production sync service
-              namespace: "$app:volume_pricing",
-              key: "tier_config",
-              type: "json",
-              value: metafieldValue,
-            },
-          ],
-        },
-      },
+      { variables: { metafields } },
     );
 
     const json = await response.json();
@@ -180,7 +195,7 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
       status: "SYNCED",
       compatibility: "SUPPORTED",
       message: "Shop tier configuration synchronized for Discount Function.",
-      details: { configVersion: config.configVersion },
+      details: { configVersion: config.configVersion, owners: metafields.map((m) => m.ownerId) },
     };
   }
 
@@ -189,7 +204,7 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
       return {
         status: "NOT_CONFIGURED",
         compatibility: "SETUP_REQUIRED",
-        message: `Customer ${target.shopifyCustomerId} tier assignment stored. Checkout pricing sync pending provider setup.`,
+        message: `Customer ${target.shopifyCustomerId} tier assignment stored. Checkout Function sync pending; wholesale tags still sync separately.`,
         details: {
           tierId: target.tierId,
           discountBps: target.discountBps,
@@ -267,6 +282,17 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
       configVersion: 0,
       assignmentVersion: 0,
     });
+  }
+
+  private async resolveShopGid(): Promise<string | null> {
+    if (!this.admin) return null;
+    try {
+      const res = await this.admin.graphql(`#graphql query { shop { id } }`);
+      const json = await res.json();
+      return (json?.data?.shop?.id as string) || null;
+    } catch {
+      return null;
+    }
   }
 }
 

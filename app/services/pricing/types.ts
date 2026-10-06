@@ -39,6 +39,10 @@ export type ShopPricingConfig = {
   discountCombination: string;
   configVersion: number;
   externalIds: Record<string, string>;
+  /** Resolved Shopify Shop GID for metafield owner */
+  shopGid?: string;
+  /** Automatic discount GID that owns function_configuration */
+  discountGid?: string;
 };
 
 export type PricingProviderCapability = {

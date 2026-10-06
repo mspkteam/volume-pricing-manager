@@ -52,6 +52,8 @@ model Shop {
   pricingCompatibilityNote String?
   discountCombination   String   @default("stack_with_product_discounts")
   notificationPrefs     Json     @default("{}")
+  /// Clay-like lock + tag sync settings
+  wholesaleAccessPolicy Json     @default("{}")
   /// Shopify Functions / automatic discount IDs when configured
   pricingExternalIds    Json     @default("{}")
   fallbackTierId        String?
