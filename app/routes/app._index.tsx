@@ -8,6 +8,7 @@ import { formatMoney, bpsToPercentString } from "../lib/money";
 import { buildExplainer } from "../services/explainer/build-explainer";
 import { formatDateTime, formatChangeType } from "../lib/format";
 import {
+  AdminLink,
   ChecklistPanel,
   EmptyState,
   PageIntro,
@@ -130,15 +131,21 @@ export default function Dashboard() {
 
   return (
     <s-page heading={data.shop.displayName}>
-      <s-button slot="primary-action" href="/app/applications">
-        Applications
-      </s-button>
-      <s-button slot="secondary-actions" href="/app/tiers">
-        Tiers
-      </s-button>
-      <s-button slot="secondary-actions" href="/app/how-it-works" variant="tertiary">
-        How it works
-      </s-button>
+      <div slot="primary-action">
+        <AdminLink to="/app/applications" className="vpm-btn">
+          Applications
+        </AdminLink>
+      </div>
+      <div slot="secondary-actions">
+        <AdminLink to="/app/tiers" className="vpm-btn vpm-btn--secondary">
+          Tiers
+        </AdminLink>
+      </div>
+      <div slot="secondary-actions">
+        <AdminLink to="/app/how-it-works" className="vpm-link">
+          How it works
+        </AdminLink>
+      </div>
 
       <PageIntro>
         Set up tiers → publish a form → approve buyers → wholesale prices unlock on the storefront.
@@ -219,7 +226,9 @@ export default function Dashboard() {
             title="No pricing tiers yet"
             body="Create custom tiers or apply the optional HVAC starter preset to begin assigning customers."
           >
-            <s-button href="/app/tiers">Go to tiers</s-button>
+            <AdminLink to="/app/tiers" className="vpm-btn">
+              Go to tiers
+            </AdminLink>
           </EmptyState>
         ) : (
           <s-table>

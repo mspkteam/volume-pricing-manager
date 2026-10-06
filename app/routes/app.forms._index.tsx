@@ -12,6 +12,11 @@ import {
 } from "../services/forms/form-service";
 import { EmptyState, FlashBanner, PageIntro, AdminLink } from "../components/admin/ui";
 import { formatDateTime } from "../lib/format";
+import { withEmbeddedSearch } from "../lib/embedded-nav";
+
+function appRedirect(request: Request, path: string) {
+  return redirect(withEmbeddedSearch(path, new URL(request.url).search));
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -44,11 +49,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         title: String(form.get("title") || "Untitled form"),
         fromTemplate: String(form.get("template") || "blank") as "blank" | "contractor_wholesale",
       });
-      throw redirect(`/app/forms/${created.id}`);
+      throw appRedirect(request, `/app/forms/${created.id}`);
     }
     if (intent === "duplicate") {
       const dup = await duplicateForm(prisma, shop.id, session.shop, String(form.get("formId")));
-      throw redirect(`/app/forms/${dup.id}`);
+      throw appRedirect(request, `/app/forms/${dup.id}`);
     }
     if (intent === "archive") {
       await archiveForm(prisma, shop.id, session.shop, String(form.get("formId")));
@@ -67,9 +72,11 @@ export default function FormsIndex() {
 
   return (
     <s-page heading="Forms">
-      <s-button slot="primary-action" href="/app/forms/new">
-        Create form
-      </s-button>
+      <div slot="primary-action">
+        <AdminLink to="/app/forms/new" className="vpm-btn">
+          Create form
+        </AdminLink>
+      </div>
       {actionData?.message ? <FlashBanner message={actionData.message} ok={actionData.ok} /> : null}
       <PageIntro>
         Build a form, publish it, then paste the handle into the theme app block. Review submissions

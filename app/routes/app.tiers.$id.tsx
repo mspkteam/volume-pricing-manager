@@ -11,6 +11,7 @@ import {
   createTier,
 } from "../services/tiers/tier-service";
 import { bpsToPercentString, fromMinorUnits } from "../lib/money";
+import { withEmbeddedSearch } from "../lib/embedded-nav";
 import {
   AdminLink,
   Check,
@@ -21,6 +22,10 @@ import {
   SubmitButton,
   TextArea,
 } from "../components/admin/ui";
+
+function appRedirect(request: Request, path: string) {
+  return redirect(withEmbeddedSearch(path, new URL(request.url).search));
+}
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -93,7 +98,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       const fields = readTierFields();
       if (!fields.name) return { ok: false, message: "Tier name is required." };
       const tier = await createTier(prisma, shop.id, fields, session.shop);
-      return redirect(`/app/tiers/${tier.id}`);
+      return appRedirect(request, `/app/tiers/${tier.id}`);
     }
     if (intent === "save") {
       const fields = readTierFields();
@@ -107,7 +112,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
         reassignToTierId:
           form.get("strategy") === "reassign" ? String(form.get("reassignToTierId")) : null,
       });
-      return redirect("/app/tiers");
+      return appRedirect(request, "/app/tiers");
     }
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : "Save failed" };

@@ -6,6 +6,7 @@ import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
 import { createForm } from "../services/forms/form-service";
 import { AdminLink, Field, PageIntro, SubmitButton } from "../components/admin/ui";
+import { withEmbeddedSearch } from "../lib/embedded-nav";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -22,7 +23,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     title: String(form.get("title") || "Untitled form"),
     fromTemplate: String(form.get("template") || "blank") as "blank" | "contractor_wholesale",
   });
-  throw redirect(`/app/forms/${created.id}`);
+  throw redirect(withEmbeddedSearch(`/app/forms/${created.id}`, new URL(request.url).search));
 };
 
 export default function NewFormPage() {

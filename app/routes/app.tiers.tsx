@@ -109,9 +109,11 @@ export default function TiersPage() {
 
   return (
     <s-page heading="Pricing Tiers">
-      <s-button slot="primary-action" href="/app/tiers/new">
-        New tier
-      </s-button>
+      <div slot="primary-action">
+        <AdminLink to="/app/tiers/new" className="vpm-btn">
+          New tier
+        </AdminLink>
+      </div>
 
       {actionData?.message ? (
         <FlashBanner message={actionData.message} ok={actionData.ok} />
