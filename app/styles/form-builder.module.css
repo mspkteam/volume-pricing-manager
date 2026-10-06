@@ -10,6 +10,36 @@
   border-radius: 12px;
 }
 
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.advanced {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e1e3e5;
+}
+
+.advanced summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #616161;
+  margin-bottom: 0.5rem;
+}
+
+.advanced label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.8125rem;
+}
+
 .toolbar label {
   display: flex;
   flex-direction: column;

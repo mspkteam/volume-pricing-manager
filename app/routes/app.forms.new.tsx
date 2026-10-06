@@ -36,7 +36,12 @@ export default function NewFormPage() {
       <s-section heading="Start from">
         <Form method="post">
           <s-stack direction="block" gap="base">
-            <s-text-field name="title" label="Form title" value="Untitled form" />
+            <s-text-field
+              name="title"
+              label="Form title"
+              placeholder="e.g. Contractor wholesale application"
+              required
+            />
             <label>
               <input type="radio" name="template" value="blank" defaultChecked /> Blank form
             </label>

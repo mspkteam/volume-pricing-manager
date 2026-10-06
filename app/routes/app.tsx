@@ -26,22 +26,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function App() {
-  const { apiKey, displayName } = useLoaderData<typeof loader>();
+  const { apiKey } = useLoaderData<typeof loader>();
 
   return (
     <AppProvider apiKey={apiKey} embedded>
       <NavMenu>
         <Link to="/app" rel="home">
-          {displayName}
+          Home
         </Link>
         <Link to="/app/tiers">Tiers</Link>
         <Link to="/app/customers">Customers</Link>
-        <Link to="/app/forms">Forms</Link>
         <Link to="/app/applications">Applications</Link>
+        <Link to="/app/forms">Forms</Link>
         <Link to="/app/wholesale">Wholesale</Link>
-        <Link to="/app/automation">Automation</Link>
         <Link to="/app/settings">Settings</Link>
-        <Link to="/app/how-it-works">Help</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

@@ -71,13 +71,13 @@ export default function ApplicationsInbox() {
   return (
     <s-page heading="Applications">
       <PageIntro>
-        Cross-form submissions inbox. Open a row to review answers, approve eligibility, and
-        optionally set an audited starting-tier override.
+        Review buyer applications here. Approve only when the applicant submitted while logged in —
+        that unlocks wholesale tags on the storefront.
       </PageIntro>
 
       <s-section heading="Filter">
         <Form method="get" className="vpm-filter-bar">
-          <s-text-field name="q" label="Search" value={data.q} />
+          <s-text-field name="q" label="Search" defaultValue={data.q} />
           <label>
             Status
             <select name="status" defaultValue={data.status}>

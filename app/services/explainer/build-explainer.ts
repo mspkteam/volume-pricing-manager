@@ -17,6 +17,13 @@ export type ExplainerTier = {
   isFallback: boolean;
 };
 
+export type ChecklistProgress = {
+  publishedForms?: number;
+  pendingApplications?: number;
+  importStatus?: string;
+  reviewedApplications?: number;
+};
+
 export function buildExplainer(args: {
   displayName: string;
   currencyCode: string;
@@ -27,6 +34,7 @@ export function buildExplainer(args: {
   pricingStatus: string;
   pricingProviderLabel: string;
   historyAccessLimited: boolean;
+  progress?: ChecklistProgress;
 }) {
   const {
     displayName,
@@ -37,6 +45,7 @@ export function buildExplainer(args: {
     pricingStatus,
     pricingProviderLabel,
     historyAccessLimited,
+    progress = {},
   } = args;
 
   const tiers = args.tiers.filter((t) => t.isActive && !t.isArchived);
@@ -60,15 +69,65 @@ export function buildExplainer(args: {
       }. Their ${bpsToPercentString(mid.discountBps)}% discount applies through ${pricingProviderLabel} when pricing status is Synced (currently: ${pricingStatus}).`
     : `No tiers yet — create your first tier (any name you choose) on the Pricing Tiers page. ${displayName} will calculate spend ranges automatically from each tier’s minimum threshold.`;
 
+  const importDone =
+    progress.importStatus === "COMPLETE" ||
+    progress.importStatus === "READY" ||
+    progress.importStatus === "SYNCED";
+
   const checklist = [
-    { id: "pricing", label: "Verify Shopify pricing compatibility", done: pricingStatus === "READY" || pricingStatus === "SYNCED" },
-    { id: "tiers", label: "Create tiers", done: tiers.length > 0 },
-    { id: "policy", label: "Choose the spend policy", done: true },
-    { id: "import", label: "Import purchase history", done: false },
-    { id: "approvals", label: "Review business approvals", done: false },
-    { id: "simulate", label: "Simulate assignments", done: false },
-    { id: "checkout", label: "Test checkout pricing", done: pricingStatus === "SYNCED" },
-    { id: "automation", label: "Enable automation", done: !automationPolicy.pauseAutomation },
+    {
+      id: "tiers",
+      label: "Create pricing tiers",
+      done: tiers.length > 0,
+      href: "/app/tiers",
+    },
+    {
+      id: "forms",
+      label: "Publish an application form",
+      done: (progress.publishedForms ?? 0) > 0,
+      href: "/app/forms",
+    },
+    {
+      id: "wholesale",
+      label: "Confirm wholesale / lock settings",
+      done: true,
+      href: "/app/wholesale",
+    },
+    {
+      id: "approvals",
+      label:
+        (progress.pendingApplications ?? 0) > 0
+          ? `Review applications (${progress.pendingApplications} waiting)`
+          : "Review applications",
+      done:
+        (progress.reviewedApplications ?? 0) > 0 ||
+        ((progress.publishedForms ?? 0) > 0 && (progress.pendingApplications ?? 0) === 0),
+      href: "/app/applications",
+    },
+    {
+      id: "import",
+      label: "Import purchase history",
+      done: importDone,
+      href: "/app/automation",
+    },
+    {
+      id: "automation",
+      label: "Turn on automation",
+      done: !automationPolicy.pauseAutomation,
+      href: "/app/automation",
+    },
+    {
+      id: "simulate",
+      label: "Try the tier simulator",
+      done: false,
+      href: "/app/simulator",
+    },
+    {
+      id: "pricing",
+      label: "Optional: sync checkout discounts",
+      done: pricingStatus === "READY" || pricingStatus === "SYNCED",
+      href: "/app/settings",
+    },
   ];
 
   return {
@@ -137,7 +196,7 @@ export function buildExplainer(args: {
         body: `Downgrade mode: ${automationPolicy.downgradeMode}. Grace period: ${automationPolicy.gracePeriodDays} days. Review interval: ${automationPolicy.reviewInterval}. Spend still recalculates while assignment changes wait.`,
       },
       {
-      heading: "Manual overrides",
+        heading: "Manual overrides",
         body: "Overrides set an effective tier with a reason, optional expiry, and optional pause of automated reassignment. When an override expires, normal calculation resumes.",
       },
       {

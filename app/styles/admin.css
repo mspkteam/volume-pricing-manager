@@ -288,6 +288,12 @@
   cursor: pointer;
 }
 
+.vpm-actions button:disabled,
+.vpm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .vpm-btn--secondary {
   background: #fff;
   color: #303030;

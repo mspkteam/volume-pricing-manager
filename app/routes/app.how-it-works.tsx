@@ -17,6 +17,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const tiers = await prisma.pricingTier.findMany({
     where: { shopId: shop.id, isArchived: false },
   });
+  const publishedForms = await prisma.applicationForms.count({
+    where: { shopId: shop.id, status: "PUBLISHED" },
+  });
+  const pendingApplications = await prisma.formSubmissions.count({
+    where: { shopId: shop.id, status: { in: ["PENDING", "NEEDS_INFORMATION"] } },
+  });
+  const reviewedApplications = await prisma.formSubmissions.count({
+    where: { shopId: shop.id, status: { in: ["APPROVED", "REJECTED"] } },
+  });
 
   const explainer = buildExplainer({
     displayName: shop.displayName,
@@ -28,6 +37,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     pricingStatus: shop.pricingStatus,
     pricingProviderLabel: "Shopify Discount Function",
     historyAccessLimited: shop.historyAccessLimited,
+    progress: {
+      publishedForms,
+      pendingApplications,
+      reviewedApplications,
+      importStatus: shop.importStatus,
+    },
   });
 
   return { explainer };

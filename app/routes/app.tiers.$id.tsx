@@ -132,28 +132,28 @@ export default function TierDetailPage() {
         <Form method="post">
           <input type="hidden" name="intent" value="save" />
           <s-stack direction="block" gap="base">
-            <s-text-field name="name" label="Name" value={t?.name ?? ""} required />
-            <s-text-field name="description" label="Description" value={t?.description ?? ""} />
-            <s-text-field name="badgeColor" label="Badge color" value={t?.badgeColor ?? "#5C6AC4"} />
+            <s-text-field name="name" label="Name" defaultValue={t?.name ?? ""} required />
+            <s-text-field name="description" label="Description" defaultValue={t?.description ?? ""} />
+            <s-text-field name="badgeColor" label="Badge color" defaultValue={t?.badgeColor ?? "#5C6AC4"} />
             <s-text-field
               name="minSpend"
               label={`Minimum qualifying spend (${data.currencyCode})`}
-              value={t?.minSpend ?? "0"}
+              defaultValue={t?.minSpend ?? "0"}
             />
             <s-text-field
               name="discountPercent"
               label="Discount percent"
-              value={t?.discountPercent ?? "0"}
+              defaultValue={t?.discountPercent ?? "0"}
             />
             <s-text-field
               name="minPurchaseHistoryMonths"
               label="Min purchase-history months (optional)"
-              value={t?.minPurchaseHistoryMonths?.toString() ?? ""}
+              defaultValue={t?.minPurchaseHistoryMonths?.toString() ?? ""}
             />
             <s-text-field
               name="displayOrder"
               label="Display order"
-              value={String(t?.displayOrder ?? 0)}
+              defaultValue={String(t?.displayOrder ?? 0)}
             />
             <label>
               <input type="checkbox" name="requiresApproval" defaultChecked={t?.requiresApproval} />{" "}

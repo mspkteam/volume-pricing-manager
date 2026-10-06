@@ -191,6 +191,13 @@ export default function SubmissionDetailPage() {
         </s-unordered-list>
       </s-section>
 
+      {!s.shopifyCustomerId ? (
+        <s-banner tone="warning" heading="Guest application">
+          This person was not logged in. Ask them to resubmit while signed in to their Shopify
+          account before you approve — Approve is blocked until a customer is linked.
+        </s-banner>
+      ) : null}
+
       <s-section heading="Answers">
         {data.customFields.length === 0 ? (
           <s-paragraph>No answer fields on this submission.</s-paragraph>
@@ -224,7 +231,7 @@ export default function SubmissionDetailPage() {
             <s-text-field
               name="customerMessage"
               label="Customer-facing message"
-              value={s.customerMessage || ""}
+              defaultValue={s.customerMessage || ""}
             />
             <label className="vpm-field">
               Internal notes
@@ -268,7 +275,18 @@ export default function SubmissionDetailPage() {
             </label>
 
             <div className="vpm-actions">
-              <button type="submit" name="intent" value="approve" className="vpm-btn">
+              <button
+                type="submit"
+                name="intent"
+                value="approve"
+                className="vpm-btn"
+                disabled={!s.shopifyCustomerId}
+                title={
+                  !s.shopifyCustomerId
+                    ? "Applicant must be a logged-in Shopify customer"
+                    : undefined
+                }
+              >
                 Approve
               </button>
               <button

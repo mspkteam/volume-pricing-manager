@@ -227,7 +227,7 @@ export default function AutomationPage() {
             <s-text-field
               name="rollingPeriodMonths"
               label="Rolling period (months)"
-              value={String(s.rollingPeriodMonths)}
+              defaultValue={String(s.rollingPeriodMonths)}
             />
             <label>
               <input type="checkbox" name="includeTax" defaultChecked={s.includeTax} /> Include tax
@@ -268,7 +268,7 @@ export default function AutomationPage() {
             <s-text-field
               name="gracePeriodDays"
               label="Grace period (days)"
-              value={String(a.gracePeriodDays)}
+              defaultValue={String(a.gracePeriodDays)}
             />
             <select name="reviewInterval" defaultValue={a.reviewInterval}>
               <option value="none">Review: none</option>
@@ -279,7 +279,7 @@ export default function AutomationPage() {
             <s-text-field
               name="reviewAnchorDay"
               label="Review anchor day (1–28)"
-              value={String(a.reviewAnchorDay)}
+              defaultValue={String(a.reviewAnchorDay)}
             />
             <s-button type="submit">Save policies</s-button>
           </s-stack>

@@ -141,7 +141,7 @@ export default function SimulatorPage() {
         <div className="vpm-panel">
         <Form method="post">
           <s-stack direction="block" gap="base">
-            <s-text-field name="spend" label={`Example qualifying spend (${currencyCode})`} value="2500" />
+            <s-text-field name="spend" label={`Example qualifying spend (${currencyCode})`} defaultValue="2500" />
             <s-text-field name="firstOrderAt" label="First order date (optional ISO)" />
             <label>
               <input type="checkbox" name="businessApproved" /> Business approved

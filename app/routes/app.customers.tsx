@@ -87,7 +87,7 @@ export default function CustomersPage() {
 
       <s-section heading="Search & filters">
         <form method="get" className="vpm-filter-bar">
-            <s-text-field name="q" label="Search" value={data.filters.q} />
+            <s-text-field name="q" label="Search" defaultValue={data.filters.q} />
             <label>
               Tier
               <select name="tier" defaultValue={data.filters.tierId}>

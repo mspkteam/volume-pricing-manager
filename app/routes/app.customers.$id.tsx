@@ -276,7 +276,7 @@ export default function CustomerDetailPage() {
               />{" "}
               Projected-volume approved
             </label>
-            <s-text-field name="adminNotes" label="Admin notes" value={customer.adminNotes} />
+            <s-text-field name="adminNotes" label="Admin notes" defaultValue={customer.adminNotes} />
             <s-button type="submit">Save eligibility</s-button>
           </s-stack>
         </Form>

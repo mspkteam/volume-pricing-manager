@@ -72,8 +72,8 @@ export default function FormsIndex() {
       </s-button>
       {actionData?.message ? <FlashBanner message={actionData.message} ok={actionData.ok} /> : null}
       <PageIntro>
-        Build publishable storefront forms with an extensible field system. Embed published forms with
-        the theme app block using each form&apos;s handle.
+        Build a form, publish it, then paste the handle into the theme app block. Review submissions
+        under <s-link href="/app/applications">Applications</s-link>.
       </PageIntro>
 
       <s-section heading="Your forms">

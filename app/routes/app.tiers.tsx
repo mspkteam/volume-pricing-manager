@@ -159,23 +159,23 @@ export default function TiersPage() {
 
       <s-section heading="Quick create">
         <div className="vpm-panel">
-        <Form method="post">
-          <input type="hidden" name="intent" value="create" />
-          <s-stack direction="block" gap="base">
-            <s-text-field name="name" label="Tier name" required />
-            <s-text-field name="minSpend" label={`Minimum qualifying spend (${currencyCode})`} value="0" />
-            <s-text-field name="discountPercent" label="Discount %" value="0" />
-            <s-text-field name="description" label="Description" />
-            <s-text-field name="badgeColor" label="Badge color" value="#5C6AC4" />
-            <label>
-              <input type="checkbox" name="requiresApproval" /> Requires business approval
-            </label>
-            <label>
-              <input type="checkbox" name="isFallback" /> Fallback tier
-            </label>
-            <s-button type="submit">Create tier</s-button>
-          </s-stack>
-        </Form>
+          <Form method="post" className="vpm-form-stack">
+            <input type="hidden" name="intent" value="create" />
+            <s-stack direction="block" gap="base">
+              <s-text-field name="name" label="Tier name" required />
+              <s-text-field
+                name="minSpend"
+                label={`Min spend (${currencyCode})`}
+                defaultValue="0"
+              />
+              <s-text-field name="discountPercent" label="Discount %" defaultValue="0" />
+              <s-button type="submit">Create tier</s-button>
+            </s-stack>
+          </Form>
+          <s-paragraph>
+            Need more options?{" "}
+            <s-link href="/app/tiers/new">Open the full tier editor</s-link>.
+          </s-paragraph>
         </div>
       </s-section>
     </s-page>

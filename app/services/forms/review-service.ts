@@ -70,6 +70,12 @@ export async function reviewSubmission(
     startingTierId: args.startingTierId || null,
   });
 
+  if (args.action === "approve" && !submission.shopifyCustomerId) {
+    throw new Error(
+      "This applicant is not logged in to a Shopify customer account. Ask them to submit while logged in, or link a customer before approving.",
+    );
+  }
+
   let status = submission.status;
   if (args.action === "approve") status = "APPROVED";
   if (args.action === "reject") status = "REJECTED";
@@ -104,20 +110,21 @@ export async function reviewSubmission(
   }
 
   // Approval updates eligibility — does NOT auto-grant requested tier.
-  if (!submission.shopifyCustomerId) {
+  const shopifyCustomerId = submission.shopifyCustomerId;
+  if (!shopifyCustomerId) {
     throw new Error(
-      "Cannot approve pricing for an unverified guest applicant. Link an authenticated customer first.",
+      "This applicant is not logged in to a Shopify customer account. Ask them to submit while logged in, or link a customer before approving.",
     );
   }
 
   let profile = await prisma.customerProfiles.findFirst({
-    where: { shopId: args.shopId, shopifyCustomerId: submission.shopifyCustomerId },
+    where: { shopId: args.shopId, shopifyCustomerId },
   });
   if (!profile) {
     profile = await prisma.customerProfiles.create({
       data: {
         shopId: args.shopId,
-        shopifyCustomerId: submission.shopifyCustomerId,
+        shopifyCustomerId,
         email: submission.applicantEmail,
         displayName: submission.applicantName,
       },

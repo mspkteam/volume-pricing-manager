@@ -122,7 +122,8 @@ export default function SettingsPage() {
 
       <PageIntro>
         Shop currency and timezone come from Shopify. Configure spend exclusions, discount behavior,
-        and pricing provider compatibility here.
+        and pricing provider compatibility here. Spend policies and the job worker live under{" "}
+        <s-link href="/app/automation">Automation</s-link>.
       </PageIntro>
 
       <s-section heading="Shop display">
@@ -166,7 +167,7 @@ export default function SettingsPage() {
         <Form method="post" className="vpm-form-stack">
           <input type="hidden" name="intent" value="save" />
           <s-stack direction="block" gap="base">
-            <s-text-field name="displayName" label="App display name" value={data.shop.displayName} />
+            <s-text-field name="displayName" label="App display name" defaultValue={data.shop.displayName} />
             <label className="vpm-field">
               Discount combination
               <select name="discountCombination" defaultValue={data.shop.discountCombination}>
@@ -177,17 +178,17 @@ export default function SettingsPage() {
             <s-text-field
               name="excludedProductIds"
               label="Excluded product GIDs (comma-separated)"
-              value={data.spendPolicy.excludedProductIds.join(",")}
+              defaultValue={data.spendPolicy.excludedProductIds.join(",")}
             />
             <s-text-field
               name="excludedCollectionIds"
               label="Excluded collection GIDs (comma-separated)"
-              value={data.spendPolicy.excludedCollectionIds.join(",")}
+              defaultValue={data.spendPolicy.excludedCollectionIds.join(",")}
             />
             <s-text-field
               name="includedSalesChannels"
               label="Included sales channels (empty = all)"
-              value={data.spendPolicy.includedSalesChannels.join(",")}
+              defaultValue={data.spendPolicy.includedSalesChannels.join(",")}
             />
             <label>
               <input type="checkbox" name="emailEnabled" defaultChecked={Boolean(prefs.emailEnabled)} />{" "}

@@ -87,7 +87,7 @@ export function TierName({
 export function ChecklistPanel({
   items,
 }: {
-  items: Array<{ id: string; label: string; done: boolean }>;
+  items: Array<{ id: string; label: string; done: boolean; href?: string }>;
 }) {
   const doneCount = items.filter((i) => i.done).length;
   return (
@@ -110,7 +110,11 @@ export function ChecklistPanel({
             >
               {item.done ? "✓" : ""}
             </span>
-            <span>{item.label}</span>
+            {item.href && !item.done ? (
+              <s-link href={item.href}>{item.label}</s-link>
+            ) : (
+              <span>{item.label}</span>
+            )}
           </li>
         ))}
       </ul>

@@ -47,6 +47,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const pendingApprovals = await prisma.customerProfiles.count({
     where: { shopId: shop.id, businessApproved: false, pendingTierId: { not: null } },
   });
+  const pendingApplications = await prisma.formSubmissions.count({
+    where: { shopId: shop.id, status: { in: ["PENDING", "NEEDS_INFORMATION"] } },
+  });
+  const reviewedApplications = await prisma.formSubmissions.count({
+    where: { shopId: shop.id, status: { in: ["APPROVED", "REJECTED"] } },
+  });
+  const publishedForms = await prisma.applicationForms.count({
+    where: { shopId: shop.id, status: "PUBLISHED" },
+  });
   const recentChanges = await prisma.tierAssignmentHistory.findMany({
     where: { shopId: shop.id },
     orderBy: { createdAt: "desc" },
@@ -68,6 +77,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     pricingStatus: shop.pricingStatus,
     pricingProviderLabel: "Shopify Discount Function",
     historyAccessLimited: shop.historyAccessLimited,
+    progress: {
+      publishedForms,
+      pendingApplications,
+      reviewedApplications,
+      importStatus: shop.importStatus,
+    },
   });
 
   return {
@@ -115,24 +130,27 @@ export default function Dashboard() {
 
   return (
     <s-page heading={data.shop.displayName}>
-      <s-button slot="primary-action" href="/app/tiers">
-        Manage tiers
+      <s-button slot="primary-action" href="/app/applications">
+        Applications
       </s-button>
-      <s-button slot="secondary-actions" href="/app/how-it-works">
+      <s-button slot="secondary-actions" href="/app/tiers">
+        Tiers
+      </s-button>
+      <s-button slot="secondary-actions" href="/app/how-it-works" variant="tertiary">
         How it works
       </s-button>
 
       <PageIntro>
-        Rolling spend drives tier assignment in {data.shop.currencyCode}. Checkout discounts stay
-        gated until pricing setup is verified — automation can run independently.
+        Set up tiers → publish a form → approve buyers → wholesale prices unlock on the storefront.
+        Checkout discount sync is optional and stays gated until verified.
       </PageIntro>
 
       {data.shop.pricingStatus === "NOT_CONFIGURED" ||
       data.shop.pricingCompatibility === "SETUP_REQUIRED" ||
       data.shop.pricingCompatibility === "UNKNOWN" ? (
         <s-banner tone="warning" heading="Checkout pricing: Setup required">
-          Tier automation can run without live checkout discounts. Verify Shopify Functions
-          compatibility (custom apps need Plus) before enabling pricing writes. See Settings.
+          Storefront tag pricing can still work. Verify Shopify Functions (Plus / custom app) before
+          enabling checkout pricing writes in Settings.
         </s-banner>
       ) : null}
 
@@ -160,31 +178,6 @@ export default function Dashboard() {
 
       <s-section heading="Setup checklist">
         <ChecklistPanel items={data.checklist} />
-        <div className="vpm-meta-row">
-          <s-stack direction="inline" gap="base">
-            <s-button href="/app/tiers">Configure tiers</s-button>
-            <s-button href="/app/forms" variant="secondary">
-              Forms
-            </s-button>
-            <s-button href="/app/wholesale" variant="tertiary">
-              Wholesale
-            </s-button>
-          </s-stack>
-        </div>
-      </s-section>
-
-      <s-section heading="Tools">
-        <s-stack direction="inline" gap="base">
-          <s-button href="/app/simulator" variant="secondary">
-            Simulator
-          </s-button>
-          <s-button href="/app/activity" variant="secondary">
-            Activity log
-          </s-button>
-          <s-button href="/app/applications" variant="secondary">
-            Applications inbox
-          </s-button>
-        </s-stack>
       </s-section>
 
       <s-section slot="aside" heading="At a glance">
@@ -209,6 +202,14 @@ export default function Dashboard() {
           {data.shop.historyCoverageMonths != null ? (
             <s-paragraph>History: {data.shop.historyCoverageMonths} months loaded</s-paragraph>
           ) : null}
+          <hr className="vpm-divider" />
+          <s-stack direction="block" gap="small">
+            <s-link href="/app/automation">Automation &amp; policies</s-link>
+            <s-link href="/app/simulator">Simulator</s-link>
+            <s-link href="/app/activity">Activity log</s-link>
+            <s-link href="/app/forms">Forms</s-link>
+            <s-link href="/app/wholesale">Wholesale access</s-link>
+          </s-stack>
         </div>
       </s-section>
 

@@ -162,8 +162,8 @@ export default function WholesaleAccessPage() {
               <input type="checkbox" name="writePercentTag" defaultChecked={p.writePercentTag} />
               Write <code className="vpm-code">vpm-pct-N</code> tags (theme reads exact %)
             </label>
-            <s-text-field name="managedTagPrefix" label="Managed tag prefix" value={p.managedTagPrefix} />
-            <s-text-field name="approvedTag" label="Approved customer tag" value={p.approvedTag} />
+            <s-text-field name="managedTagPrefix" label="Managed tag prefix" defaultValue={p.managedTagPrefix} />
+            <s-text-field name="approvedTag" label="Approved customer tag" defaultValue={p.approvedTag} />
             <label className="vpm-field">
               Lock mode
               <select name="lockMode" defaultValue={p.lockMode}>
@@ -173,8 +173,8 @@ export default function WholesaleAccessPage() {
                 <option value="tier_tagged">Has any VPM / tier tag</option>
               </select>
             </label>
-            <s-text-field name="lockMessage" label="Locked (logged-in) message" value={p.lockMessage} />
-            <s-text-field name="loginMessage" label="Guest login message" value={p.loginMessage} />
+            <s-text-field name="lockMessage" label="Locked (logged-in) message" defaultValue={p.lockMessage} />
+            <s-text-field name="loginMessage" label="Guest login message" defaultValue={p.loginMessage} />
             <s-button type="submit">Save settings</s-button>
           </Form>
         </div>

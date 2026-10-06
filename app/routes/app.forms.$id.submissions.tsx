@@ -99,7 +99,7 @@ export default function FormSubmissionsPage() {
       <s-section heading="Filter">
         <Form method="get">
           <s-stack direction="inline" gap="base">
-            <s-text-field name="q" label="Search" value={data.q} />
+            <s-text-field name="q" label="Search" defaultValue={data.q} />
             <label>
               Status{" "}
               <select name="status" defaultValue={data.status}>

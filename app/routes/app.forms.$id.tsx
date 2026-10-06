@@ -281,32 +281,11 @@ export default function FormBuilderPage() {
       <s-link slot="breadcrumb-actions" href="/app/forms">
         Forms
       </s-link>
-      <s-button
-        slot="primary-action"
-        disabled={busy}
-        onClick={((e: Event) => {
-          e.preventDefault();
-          persist("publish");
-        }) as any}
-      >
-        Publish
-      </s-button>
-      <s-button
-        slot="secondary-actions"
-        variant="secondary"
-        disabled={busy}
-        onClick={((e: Event) => {
-          e.preventDefault();
-          persist("save");
-        }) as any}
-      >
-        Save draft
-      </s-button>
       <s-button slot="secondary-actions" href={`/app/forms/${data.form.id}/submissions`} variant="tertiary">
         Submissions
       </s-button>
       <s-button slot="secondary-actions" href={`/app/forms/${data.form.id}/embed`} variant="tertiary">
-        Embed
+        Embed code
       </s-button>
 
       {actionData?.message ? (
@@ -329,6 +308,24 @@ export default function FormBuilderPage() {
       </PageIntro>
 
       <div className={styles.toolbar}>
+        <div className={styles.toolbarActions}>
+          <button
+            type="button"
+            className="vpm-btn vpm-btn--secondary"
+            disabled={busy}
+            onClick={() => persist("save")}
+          >
+            {busy ? "Saving…" : "Save draft"}
+          </button>
+          <button
+            type="button"
+            className="vpm-btn"
+            disabled={busy}
+            onClick={() => persist("publish")}
+          >
+            {busy ? "Publishing…" : "Publish"}
+          </button>
+        </div>
         <label>
           Title
           <input
@@ -635,53 +632,56 @@ export default function FormBuilderPage() {
                   </>
                 ) : null}
 
-                <label>
-                  Visibility JSON
-                  <textarea
-                    rows={3}
-                    value={
-                      selected.visibility
-                        ? JSON.stringify(selected.visibility, null, 2)
-                        : ""
-                    }
-                    placeholder='{"logic":"AND","clauses":[{"fieldId":"...","operator":"equals","value":"..."}]}'
-                    onChange={(e) => {
-                      const raw = e.target.value.trim();
-                      if (!raw) {
-                        patchField(selected.id, { visibility: null });
-                        return;
+                <details className={styles.advanced}>
+                  <summary>Advanced conditions (optional)</summary>
+                  <label>
+                    Visibility JSON
+                    <textarea
+                      rows={3}
+                      value={
+                        selected.visibility
+                          ? JSON.stringify(selected.visibility, null, 2)
+                          : ""
                       }
-                      try {
-                        patchField(selected.id, { visibility: JSON.parse(raw) });
-                      } catch {
-                        /* ignore while typing */
+                      placeholder='{"logic":"AND","clauses":[{"fieldId":"...","operator":"equals","value":"..."}]}'
+                      onChange={(e) => {
+                        const raw = e.target.value.trim();
+                        if (!raw) {
+                          patchField(selected.id, { visibility: null });
+                          return;
+                        }
+                        try {
+                          patchField(selected.id, { visibility: JSON.parse(raw) });
+                        } catch {
+                          /* ignore while typing */
+                        }
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Required-when JSON
+                    <textarea
+                      rows={3}
+                      value={
+                        selected.requiredWhen
+                          ? JSON.stringify(selected.requiredWhen, null, 2)
+                          : ""
                       }
-                    }}
-                  />
-                </label>
-                <label>
-                  Required-when JSON
-                  <textarea
-                    rows={3}
-                    value={
-                      selected.requiredWhen
-                        ? JSON.stringify(selected.requiredWhen, null, 2)
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const raw = e.target.value.trim();
-                      if (!raw) {
-                        patchField(selected.id, { requiredWhen: null });
-                        return;
-                      }
-                      try {
-                        patchField(selected.id, { requiredWhen: JSON.parse(raw) });
-                      } catch {
-                        /* ignore while typing */
-                      }
-                    }}
-                  />
-                </label>
+                      onChange={(e) => {
+                        const raw = e.target.value.trim();
+                        if (!raw) {
+                          patchField(selected.id, { requiredWhen: null });
+                          return;
+                        }
+                        try {
+                          patchField(selected.id, { requiredWhen: JSON.parse(raw) });
+                        } catch {
+                          /* ignore while typing */
+                        }
+                      }}
+                    />
+                  </label>
+                </details>
               </div>
             )}
 
