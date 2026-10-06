@@ -7,10 +7,47 @@ import { ensureShop, parseSpendPolicy } from "../services/shop/shop-service";
 import { getPricingProvider } from "../services/pricing/discount-function-provider";
 import { writeAuditLog } from "../services/audit/audit-log";
 import type { SpendPolicy } from "../lib/policies";
-import { AdminLink, Field, FlashBanner, PageIntro, PricingStatusBadge, SubmitButton } from "../components/admin/ui";
+import {
+  AdminLink,
+  Field,
+  FlashBanner,
+  PageIntro,
+  PricingStatusBadge,
+  SubmitButton,
+} from "../components/admin/ui";
+import { ResourcePickerField } from "../components/admin/resource-picker-field";
+
+async function resolveResourceTitles(
+  admin: { graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response> },
+  ids: string[],
+): Promise<Array<{ id: string; title: string }>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return [];
+  try {
+    const res = await admin.graphql(
+      `#graphql
+      query Nodes($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on Product { id title }
+          ... on Collection { id title }
+        }
+      }`,
+      { variables: { ids: unique } },
+    );
+    const json = await res.json();
+    const nodes = (json.data?.nodes || []) as Array<{ id?: string; title?: string } | null>;
+    const byId = new Map<string, string>();
+    for (const n of nodes) {
+      if (n?.id) byId.set(n.id, n.title || n.id);
+    }
+    return unique.map((id) => ({ id, title: byId.get(id) || id }));
+  } catch {
+    return unique.map((id) => ({ id, title: id }));
+  }
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(prisma, session.shop);
   const distribution =
     (process.env.SHOPIFY_APP_DISTRIBUTION as "app_store" | "custom" | "unknown") || "unknown";
@@ -22,23 +59,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     functionsAvailable: null,
   });
 
+  const spendPolicy = parseSpendPolicy(shop.spendPolicy);
+  const [excludedProducts, excludedCollections] = await Promise.all([
+    resolveResourceTitles(admin, spendPolicy.excludedProductIds),
+    resolveResourceTitles(admin, spendPolicy.excludedCollectionIds),
+  ]);
+
   return {
     shop: {
       displayName: shop.displayName,
       currencyCode: shop.currencyCode,
       timezone: shop.timezone,
-      pricingProvider: shop.pricingProvider,
       pricingStatus: shop.pricingStatus,
       pricingCompatibility: shop.pricingCompatibility,
-      pricingCompatibilityNote: shop.pricingCompatibilityNote,
       discountCombination: shop.discountCombination,
-      notificationPrefs: shop.notificationPrefs,
     },
-    spendPolicy: parseSpendPolicy(shop.spendPolicy),
-    providerCapability: provider.capability,
+    spendPolicy,
+    excludedProducts,
+    excludedCollections,
+    providerLabel: provider.capability.displayName,
     liveCompatibility: compatibility,
     writesEnabled: process.env.PRICING_WRITES_ENABLED === "true",
-    distribution,
   };
 };
 
@@ -50,8 +91,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   try {
     if (intent === "save") {
+      const existing = parseSpendPolicy(shop.spendPolicy);
       const spendPolicy: SpendPolicy = {
-        ...parseSpendPolicy(shop.spendPolicy),
+        ...existing,
         excludedProductIds: String(form.get("excludedProductIds") || "")
           .split(",")
           .map((s) => s.trim())
@@ -60,10 +102,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
-        includedSalesChannels: String(form.get("includedSalesChannels") || "")
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
+        // Keep previous channel filter unless we expose UI again
+        includedSalesChannels: existing.includedSalesChannels,
       };
 
       const distribution =
@@ -85,10 +125,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           pricingStatus: compatibility.status,
           pricingCompatibility: compatibility.compatibility,
           pricingCompatibilityNote: compatibility.message,
-          notificationPrefs: {
-            emailEnabled: form.get("emailEnabled") === "on",
-            smsEnabled: false,
-          },
           settingsVersion: { increment: 1 },
         },
       });
@@ -112,7 +148,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function SettingsPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const prefs = (data.shop.notificationPrefs || {}) as { emailEnabled?: boolean };
 
   return (
     <s-page heading="Settings">
@@ -121,48 +156,11 @@ export default function SettingsPage() {
       ) : null}
 
       <PageIntro>
-        Shop currency and timezone come from Shopify. Configure spend exclusions, discount behavior,
-        and pricing provider compatibility here. Spend policies and the job worker live under{" "}
+        Currency {data.shop.currencyCode} · {data.shop.timezone}. Spend / automation rules:{" "}
         <AdminLink to="/app/automation">Automation</AdminLink>.
       </PageIntro>
 
-      <s-section heading="Shop display">
-        <s-paragraph>
-          Currency: {data.shop.currencyCode} · Timezone: {data.shop.timezone} (from Shopify; shown
-          here for reference)
-        </s-paragraph>
-      </s-section>
-
-      <s-section heading="Pricing provider">
-        <div className="vpm-panel vpm-stack-tight">
-          <s-paragraph>
-            Provider: <s-text type="strong">{data.providerCapability.displayName}</s-text>
-          </s-paragraph>
-          <PricingStatusBadge
-            status={data.shop.pricingStatus}
-            compatibility={data.shop.pricingCompatibility}
-          />
-          <s-paragraph>{data.liveCompatibility.message}</s-paragraph>
-          <s-paragraph>
-            Distribution: {data.distribution} · Pricing writes:{" "}
-            {data.writesEnabled ? "enabled" : "disabled (safe default)"}
-          </s-paragraph>
-          <ul className="vpm-checklist">
-            {data.providerCapability.setupSteps.map((step) => (
-              <li key={step} className="vpm-checklist-item">
-                <span className="vpm-checklist-icon vpm-checklist-icon--pending" aria-hidden />
-                <span>{step}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <s-banner tone="info">
-          Custom-distributed apps need Shopify Plus for Functions. App Store apps can use Functions
-          on all plans.
-        </s-banner>
-      </s-section>
-
-      <s-section heading="App settings">
+      <s-section heading="Basics">
         <div className="vpm-panel">
           <Form method="post" className="vpm-form-stack">
             <input type="hidden" name="intent" value="save" />
@@ -172,33 +170,47 @@ export default function SettingsPage() {
               defaultValue={data.shop.displayName}
             />
             <label className="vpm-field">
-              Discount combination
+              How volume discounts combine with other product discounts
               <select name="discountCombination" defaultValue={data.shop.discountCombination}>
                 <option value="stack_with_product_discounts">Stack with product discounts</option>
-                <option value="exclusive">Exclusive (avoid double discounting where possible)</option>
+                <option value="exclusive">Exclusive (prefer not to double-discount)</option>
               </select>
             </label>
-            <Field
+
+            <ResourcePickerField
+              type="product"
               name="excludedProductIds"
-              label="Excluded product GIDs (comma-separated)"
-              defaultValue={data.spendPolicy.excludedProductIds.join(",")}
+              label="Excluded products"
+              helpText="These products do not count toward qualifying spend."
+              initialItems={data.excludedProducts}
             />
-            <Field
+            <ResourcePickerField
+              type="collection"
               name="excludedCollectionIds"
-              label="Excluded collection GIDs (comma-separated)"
-              defaultValue={data.spendPolicy.excludedCollectionIds.join(",")}
+              label="Excluded collections"
+              helpText="Products in these collections do not count toward qualifying spend."
+              initialItems={data.excludedCollections}
             />
-            <Field
-              name="includedSalesChannels"
-              label="Included sales channels (empty = all)"
-              defaultValue={data.spendPolicy.includedSalesChannels.join(",")}
-            />
-            <label className="vpm-check">
-              <input type="checkbox" name="emailEnabled" defaultChecked={Boolean(prefs.emailEnabled)} />{" "}
-              Email notification preference (no messaging integration auto-enabled)
-            </label>
+
             <SubmitButton>Save settings</SubmitButton>
           </Form>
+        </div>
+      </s-section>
+
+      <s-section heading="Checkout pricing status">
+        <div className="vpm-panel vpm-stack-tight">
+          <s-paragraph>
+            Provider: <s-text type="strong">{data.providerLabel}</s-text>
+          </s-paragraph>
+          <PricingStatusBadge
+            status={data.shop.pricingStatus}
+            compatibility={data.shop.pricingCompatibility}
+          />
+          <s-paragraph>{data.liveCompatibility.message}</s-paragraph>
+          <s-paragraph>
+            Pricing writes are {data.writesEnabled ? "enabled" : "disabled (safe default)"}. Storefront
+            tag pricing can still work without checkout Function writes.
+          </s-paragraph>
         </div>
       </s-section>
     </s-page>

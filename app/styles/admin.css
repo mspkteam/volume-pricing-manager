@@ -151,7 +151,7 @@
 .vpm-filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.75rem 1rem;
   align-items: flex-end;
   padding: 1rem 1.125rem;
   background: var(--p-color-bg-surface-secondary, #f6f6f7);
@@ -160,22 +160,109 @@
   margin-bottom: 1rem;
 }
 
-.vpm-filter-bar label {
+.vpm-filter-bar .vpm-field,
+.vpm-filter-bar > label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--p-color-text-secondary, #616161);
+  flex: 1 1 11rem;
+  min-width: 9rem;
+  max-width: 18rem;
+  margin: 0;
 }
 
+.vpm-filter-bar .vpm-field input,
+.vpm-filter-bar input[type="text"],
+.vpm-filter-bar input[type="search"],
 .vpm-filter-bar select {
-  min-width: 9rem;
+  width: 100%;
+  min-height: 2.35rem;
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
   border: 1px solid var(--p-color-border, #8c9196);
   font: inherit;
   background: var(--p-color-bg-surface, #fff);
+  box-sizing: border-box;
+}
+
+.vpm-filter-bar .vpm-btn,
+.vpm-filter-bar button[type="submit"] {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  min-height: 2.35rem;
+}
+
+.vpm-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--p-color-border-secondary, #e1e3e5);
+  border-radius: 12px;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+}
+
+.vpm-picker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.vpm-picker-label {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--p-color-text, #303030);
+}
+
+.vpm-picker-help,
+.vpm-picker-empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--p-color-text-secondary, #616161);
+  line-height: 1.4;
+}
+
+.vpm-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.vpm-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.35rem 0.45rem 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--p-color-border-secondary, #e1e3e5);
+  font-size: 0.8125rem;
+}
+
+.vpm-picker-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 16rem;
+}
+
+.vpm-picker-remove {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #616161;
+  padding: 0 0.2rem;
 }
 
 .vpm-meta-row {

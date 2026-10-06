@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
 import {
   pricingCompatibilityLabel,
   pricingStatusLabel,
@@ -65,7 +65,10 @@ export function EmptyState({
   );
 }
 
-/** In-app navigation that works with React Router (s-link often does not). */
+/**
+ * In-app navigation for the embedded admin.
+ * Uses React Router navigate + href so App Bridge and RR stay in sync.
+ */
 export function AdminLink({
   to,
   children,
@@ -75,10 +78,19 @@ export function AdminLink({
   children: ReactNode;
   className?: string;
 }) {
+  const navigate = useNavigate();
   return (
-    <Link to={to} className={className || "vpm-link"}>
+    <a
+      href={to}
+      className={className || "vpm-link"}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        navigate(to);
+      }}
+    >
       {children}
-    </Link>
+    </a>
   );
 }
 
@@ -89,6 +101,7 @@ export function Field({
   defaultValue,
   required,
   placeholder,
+  className,
   ...rest
 }: {
   label: string;
@@ -97,9 +110,13 @@ export function Field({
   defaultValue?: string | number | null;
   required?: boolean;
   placeholder?: string;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "defaultValue" | "type">) {
+  className?: string;
+} & Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "name" | "defaultValue" | "type" | "className"
+>) {
   return (
-    <label className="vpm-field">
+    <label className={`vpm-field${className ? ` ${className}` : ""}`}>
       {label}
       <input
         type={type}

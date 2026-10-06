@@ -1,12 +1,10 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Link, Outlet, useLoaderData, useRouteError } from "react-router";
+import { Link, Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { NavMenu } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import "../styles/admin.css";
 
-// AppProvider types are missing from the published package build in some versions;
-// runtime export still exists — declare locally for typecheck.
 declare module "@shopify/shopify-app-react-router/react" {
   export function AppProvider(props: {
     apiKey: string;
@@ -21,12 +19,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
   return {
     apiKey: process.env.SHOPIFY_API_KEY || "",
-    displayName: process.env.APP_DISPLAY_NAME || "Volume Pricing Manager",
   };
 };
 
 export default function App() {
   const { apiKey } = useLoaderData<typeof loader>();
+  const location = useLocation();
 
   return (
     <AppProvider apiKey={apiKey} embedded>
@@ -41,7 +39,8 @@ export default function App() {
         <Link to="/app/wholesale">Wholesale</Link>
         <Link to="/app/settings">Settings</Link>
       </NavMenu>
-      <Outlet />
+      {/* Force remount when path changes — fixes embedded URL change with blank/stuck UI */}
+      <Outlet key={location.pathname} />
     </AppProvider>
   );
 }

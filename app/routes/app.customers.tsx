@@ -87,7 +87,7 @@ export default function CustomersPage() {
 
       <s-section heading="Search & filters">
         <form method="get" className="vpm-filter-bar">
-          <Field label="Search" name="q" defaultValue={data.filters.q} />
+          <Field label="Search" name="q" defaultValue={data.filters.q} placeholder="Name, email, or ID" />
           <label>
             Tier
             <select name="tier" defaultValue={data.filters.tierId}>
@@ -102,29 +102,14 @@ export default function CustomersPage() {
           <label>
             Approval
             <select name="approval" defaultValue={data.filters.approval}>
-              <option value="">Any approval</option>
+              <option value="">Any</option>
               <option value="approved">Approved</option>
               <option value="pending">Not approved</option>
             </select>
           </label>
-          <label>
-            Override
-            <select name="override" defaultValue={data.filters.override}>
-              <option value="">Any override</option>
-              <option value="yes">Has override</option>
-            </select>
-          </label>
-          <label>
-            Pricing sync
-            <select name="sync" defaultValue={data.filters.sync}>
-              <option value="">Any pricing sync</option>
-              <option value="NOT_CONFIGURED">Not configured</option>
-              <option value="SYNCED">Synced</option>
-              <option value="FAILED">Failed</option>
-              <option value="UNSUPPORTED">Unsupported</option>
-            </select>
-          </label>
-          <SubmitButton>Apply filters</SubmitButton>
+          <input type="hidden" name="override" value={data.filters.override} />
+          <input type="hidden" name="sync" value={data.filters.sync} />
+          <SubmitButton>Apply</SubmitButton>
         </form>
       </s-section>
 

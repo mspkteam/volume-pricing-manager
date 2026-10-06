@@ -67,11 +67,9 @@ export default function FormsIndex() {
 
   return (
     <s-page heading="Forms">
-      <div slot="primary-action">
-        <AdminLink to="/app/forms/new" className="vpm-btn">
-          Create form
-        </AdminLink>
-      </div>
+      <s-button slot="primary-action" href="/app/forms/new">
+        Create form
+      </s-button>
       {actionData?.message ? <FlashBanner message={actionData.message} ok={actionData.ok} /> : null}
       <PageIntro>
         Build a form, publish it, then paste the handle into the theme app block. Review submissions
