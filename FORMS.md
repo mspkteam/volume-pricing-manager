@@ -30,11 +30,14 @@ Theme Editor **cannot** dynamically list app forms. Merchants must paste the for
 
 ## Uploads
 
-Set in `.env` (see `.env.example`):
+Preferred on Vercel: create a **private** Blob store and connect it (adds `BLOB_READ_WRITE_TOKEN`).
+The app auto-detects that token, or set `UPLOAD_STORAGE_PROVIDER=blob`.
 
-- `UPLOAD_STORAGE_PROVIDER` = `s3` | `r2` | `memory` | `dev`
-- `UPLOAD_BUCKET`, `UPLOAD_ACCESS_KEY_ID`, `UPLOAD_SECRET_ACCESS_KEY`
-- For production PUT gateways: `UPLOAD_PUT_BASE_URL`, `UPLOAD_GET_BASE_URL`, `UPLOAD_PUT_TOKEN`
+Also supported:
+
+- `UPLOAD_STORAGE_PROVIDER` = `blob` | `s3` | `r2` | `memory` | `dev`
+- `UPLOAD_BUCKET`, `UPLOAD_ACCESS_KEY_ID`, `UPLOAD_SECRET_ACCESS_KEY` (S3/R2)
+- For S3/R2 PUT gateways: `UPLOAD_PUT_BASE_URL`, `UPLOAD_GET_BASE_URL`, `UPLOAD_PUT_TOKEN`
 - Local only: `memory`/`dev` (+ `ALLOW_DEV_UPLOADS=true` if needed)
 
 Until configured, `uploadsConfigured()` is false and file fields show a setup message (forms without uploads still work).

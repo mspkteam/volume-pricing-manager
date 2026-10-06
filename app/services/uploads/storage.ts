@@ -1,6 +1,8 @@
 /**
- * Private upload storage. When unconfigured, upload fields surface a setup requirement.
+ * Private upload storage. Prefer Vercel Blob on Vercel; S3/R2 via signed gateway; memory/dev for local.
  */
+
+import { get as blobGet, put as blobPut } from "@vercel/blob";
 
 export type StoredUpload = {
   storageProvider: string;
@@ -10,8 +12,21 @@ export type StoredUpload = {
   checksumSha256?: string;
 };
 
+function resolvedProvider(): string {
+  const explicit = (process.env.UPLOAD_STORAGE_PROVIDER || "").toLowerCase().trim();
+  if (explicit) {
+    if (explicit === "vercel" || explicit === "vercel-blob") return "blob";
+    return explicit;
+  }
+  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) return "blob";
+  return "";
+}
+
 export function uploadsConfigured(): boolean {
-  const provider = (process.env.UPLOAD_STORAGE_PROVIDER || "").toLowerCase();
+  const provider = resolvedProvider();
+  if (provider === "blob") {
+    return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+  }
   if (provider === "s3" || provider === "r2") {
     return Boolean(
       process.env.UPLOAD_BUCKET &&
@@ -27,9 +42,8 @@ export function uploadsConfigured(): boolean {
 
 export function uploadSetupMessage(): string {
   return (
-    "File uploads require private object storage. Set UPLOAD_STORAGE_PROVIDER " +
-    "(s3|r2), UPLOAD_BUCKET, UPLOAD_ACCESS_KEY_ID, UPLOAD_SECRET_ACCESS_KEY, " +
-    "and optionally UPLOAD_ENDPOINT / UPLOAD_PUBLIC_BASE_URL. " +
+    "File uploads require private object storage. On Vercel, create a private Blob store " +
+    "(adds BLOB_READ_WRITE_TOKEN). Or set UPLOAD_STORAGE_PROVIDER=s3|r2 with bucket credentials. " +
     "Until configured, forms with file fields cannot accept documents."
   );
 }
@@ -79,8 +93,26 @@ export async function storeUpload(args: {
     throw new Error("File content does not match declared type");
   }
 
-  const provider = (process.env.UPLOAD_STORAGE_PROVIDER || "memory").toLowerCase();
+  const provider = resolvedProvider() || "memory";
   const key = `${args.shopId}/${args.fieldId}/${crypto.randomUUID()}-${sanitizeName(args.filename)}`;
+
+  if (provider === "blob") {
+    const blob = await blobPut(key, args.bytes, {
+      access: "private",
+      contentType: args.contentType,
+      addRandomSuffix: false,
+      ...(process.env.BLOB_READ_WRITE_TOKEN
+        ? { token: process.env.BLOB_READ_WRITE_TOKEN }
+        : {}),
+    });
+    return {
+      storageProvider: "blob",
+      storageKey: blob.url,
+      contentType: args.contentType,
+      byteSize: args.bytes.byteLength,
+      checksumSha256: await sha256(args.bytes),
+    };
+  }
 
   if (provider === "memory" || provider === "dev") {
     memoryBlobs.set(key, args.bytes);
@@ -99,7 +131,7 @@ export async function storeUpload(args: {
   const putBase = process.env.UPLOAD_PUT_BASE_URL;
   if (!putBase) {
     throw new Error(
-      "S3/R2 configured but UPLOAD_PUT_BASE_URL is missing. Use a signed-upload gateway or set memory/dev for local.",
+      "S3/R2 configured but UPLOAD_PUT_BASE_URL is missing. Use Vercel Blob (BLOB_READ_WRITE_TOKEN) or set a signed-upload gateway.",
     );
   }
   const res = await fetch(`${putBase.replace(/\/$/, "")}/${key}`, {
@@ -122,6 +154,27 @@ export async function storeUpload(args: {
 }
 
 export async function readUpload(storageProvider: string, storageKey: string): Promise<Buffer | null> {
+  if (storageProvider === "blob") {
+    try {
+      const result = await blobGet(storageKey, {
+        access: "private",
+        ...(process.env.BLOB_READ_WRITE_TOKEN
+          ? { token: process.env.BLOB_READ_WRITE_TOKEN }
+          : {}),
+      });
+      if (!result?.stream) return null;
+      const chunks: Buffer[] = [];
+      const reader = result.stream.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(Buffer.from(value));
+      }
+      return Buffer.concat(chunks);
+    } catch {
+      return null;
+    }
+  }
   if (storageProvider === "memory" || storageProvider === "dev") {
     return memoryBlobs.get(storageKey) ?? null;
   }
