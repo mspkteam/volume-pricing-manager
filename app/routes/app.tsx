@@ -1,5 +1,5 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Link, Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
+import { Link, Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { NavMenu } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -17,14 +17,15 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
-  return {
-    apiKey: process.env.SHOPIFY_API_KEY || "",
-  };
+  const apiKey = process.env.SHOPIFY_API_KEY || "";
+  if (!apiKey) {
+    console.warn("[vpm] SHOPIFY_API_KEY is empty — embedded NavMenu navigation may break");
+  }
+  return { apiKey };
 };
 
 export default function App() {
   const { apiKey } = useLoaderData<typeof loader>();
-  const location = useLocation();
 
   return (
     <AppProvider apiKey={apiKey} embedded>
@@ -39,8 +40,7 @@ export default function App() {
         <Link to="/app/wholesale">Wholesale</Link>
         <Link to="/app/settings">Settings</Link>
       </NavMenu>
-      {/* Force remount when path changes — fixes embedded URL change with blank/stuck UI */}
-      <Outlet key={location.pathname} />
+      <Outlet />
     </AppProvider>
   );
 }

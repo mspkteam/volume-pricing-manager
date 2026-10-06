@@ -1,10 +1,9 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation } from "react-router";
 import {
   pricingCompatibilityLabel,
   pricingStatusLabel,
 } from "../../lib/pricing-status";
-import { withEmbeddedSearch } from "../../lib/embedded-nav";
 
 export function PageIntro({ children }: { children: ReactNode }) {
   return <p className="vpm-page-intro">{children}</p>;
@@ -67,8 +66,7 @@ export function EmptyState({
 }
 
 /**
- * In-app navigation for the embedded admin.
- * MUST preserve ?shop=&host=&embedded= or Shopify returns 410 Gone.
+ * React Router Link that keeps Shopify embedded query params (shop/host/…).
  */
 export function AdminLink({
   to,
@@ -79,21 +77,15 @@ export function AdminLink({
   children: ReactNode;
   className?: string;
 }) {
-  const navigate = useNavigate();
   const location = useLocation();
-  const target = withEmbeddedSearch(to, location.search);
+  const pathname = to.includes("?") ? to.slice(0, to.indexOf("?")) : to;
   return (
-    <a
-      href={target}
+    <Link
+      to={{ pathname, search: location.search }}
       className={className || "vpm-link"}
-      onClick={(e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-        e.preventDefault();
-        navigate(target);
-      }}
     >
       {children}
-    </a>
+    </Link>
   );
 }
 

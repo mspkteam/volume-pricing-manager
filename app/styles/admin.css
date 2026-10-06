@@ -408,8 +408,51 @@ a.vpm-btn:hover {
   background: var(--p-color-bg-surface-secondary, #f6f6f7);
 }
 
-.vpm-table tr:last-child td {
-  border-bottom: none;
+.vpm-table-row--active td {
+  background: #f1f8ff;
+}
+
+.vpm-tier-editor {
+  margin-bottom: 0.5rem;
+}
+
+.vpm-tier-editor-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.vpm-tier-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.vpm-tier-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.45rem 1rem;
+}
+
+.vpm-tier-archive {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--p-color-border-secondary, #e1e3e5);
+}
+
+.vpm-linkish {
+  border: 0;
+  background: transparent;
+  color: var(--p-color-text-link, #005bd3);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+
+.vpm-linkish:hover {
+  text-decoration: underline;
 }
 
 .vpm-form-stack textarea {
