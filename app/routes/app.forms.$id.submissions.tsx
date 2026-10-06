@@ -88,9 +88,9 @@ export default function FormSubmissionsPage() {
 
   return (
     <s-page heading={`Submissions · ${data.form.title}`}>
-      <s-button slot="primary-action" href={`/app/forms/${data.form.id}`} variant="tertiary">
-        Back to builder
-      </s-button>
+      <s-link slot="breadcrumb-actions" href={`/app/forms/${data.form.id}`}>
+        Form builder
+      </s-link>
       <PageIntro>
         Review applications for <code>{data.form.handle}</code>. Application status is separate from
         pricing sync after approval.

@@ -220,3 +220,121 @@
   font-size: 0.8125rem;
   margin-top: 0.2rem;
 }
+
+.vpm-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vpm-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.vpm-form-stack label.vpm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.vpm-form-stack label.vpm-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--p-color-text, #303030);
+}
+
+.vpm-form-stack select,
+.vpm-form-stack textarea,
+.vpm-form-stack input[type="text"],
+.vpm-form-stack input[type="datetime-local"] {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--p-color-border, #8c9196);
+  border-radius: 8px;
+  font: inherit;
+  background: var(--p-color-bg-surface, #fff);
+  max-width: 100%;
+}
+
+.vpm-form-stack textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.vpm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.vpm-actions button,
+.vpm-btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #303030;
+  background: #303030;
+  color: #fff;
+  cursor: pointer;
+}
+
+.vpm-btn--secondary {
+  background: #fff;
+  color: #303030;
+  border-color: #8c9196;
+}
+
+.vpm-btn--critical {
+  background: #fff;
+  color: #8e1f0b;
+  border-color: #e0b3a8;
+}
+
+.vpm-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.vpm-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.vpm-section-gap {
+  margin-top: 0.5rem;
+}
+
+button.vpm-linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--p-color-text-link, #005bd3);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+button.vpm-linkish--critical {
+  color: #8e1f0b;
+}
+
+

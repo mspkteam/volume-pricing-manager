@@ -93,16 +93,34 @@ export default function FormsIndex() {
               <s-table-header>Purpose</s-table-header>
               <s-table-header>Submissions</s-table-header>
               <s-table-header>Updated</s-table-header>
-              <s-table-header>Actions</s-table-header>
             </s-table-header-row>
             <s-table-body>
               {forms.map((f) => (
                 <s-table-row key={f.id}>
                   <s-table-cell>
                     <s-link href={`/app/forms/${f.id}`}>{f.title}</s-link>
+                    <div className="vpm-change-meta">
+                      <s-link href={`/app/forms/${f.id}/embed`}>Embed</s-link>
+                      {" · "}
+                      <Form method="post" style={{ display: "inline" }}>
+                        <input type="hidden" name="intent" value="duplicate" />
+                        <input type="hidden" name="formId" value={f.id} />
+                        <button type="submit" className="vpm-linkish">
+                          Duplicate
+                        </button>
+                      </Form>
+                      {" · "}
+                      <Form method="post" style={{ display: "inline" }}>
+                        <input type="hidden" name="intent" value="archive" />
+                        <input type="hidden" name="formId" value={f.id} />
+                        <button type="submit" className="vpm-linkish vpm-linkish--critical">
+                          Archive
+                        </button>
+                      </Form>
+                    </div>
                   </s-table-cell>
                   <s-table-cell>
-                    <code>{f.handle}</code>
+                    <code className="vpm-code">{f.handle}</code>
                   </s-table-cell>
                   <s-table-cell>
                     <s-badge tone={f.status === "PUBLISHED" ? "success" : undefined}>{f.status}</s-badge>
@@ -113,25 +131,6 @@ export default function FormsIndex() {
                     <s-link href={`/app/forms/${f.id}/submissions`}>{f.submissions}</s-link>
                   </s-table-cell>
                   <s-table-cell>{formatDateTime(f.updatedAt)}</s-table-cell>
-                  <s-table-cell>
-                    <s-stack direction="inline" gap="small">
-                      <s-link href={`/app/forms/${f.id}/embed`}>Embed</s-link>
-                      <Form method="post" style={{ display: "inline" }}>
-                        <input type="hidden" name="intent" value="duplicate" />
-                        <input type="hidden" name="formId" value={f.id} />
-                        <s-button type="submit" variant="tertiary">
-                          Duplicate
-                        </s-button>
-                      </Form>
-                      <Form method="post" style={{ display: "inline" }}>
-                        <input type="hidden" name="intent" value="archive" />
-                        <input type="hidden" name="formId" value={f.id} />
-                        <s-button type="submit" variant="tertiary" tone="critical">
-                          Archive
-                        </s-button>
-                      </Form>
-                    </s-stack>
-                  </s-table-cell>
                 </s-table-row>
               ))}
             </s-table-body>

@@ -9,7 +9,7 @@ import {
   parseWholesaleAccessPolicy,
   type WholesaleLockMode,
 } from "../services/wholesale/policy";
-import { FlashBanner, PageIntro } from "../components/admin/ui";
+import { EmptyState, FlashBanner, PageIntro } from "../components/admin/ui";
 import { writeAuditLog } from "../services/audit/audit-log";
 import { enqueueJob, JOB_TYPES } from "../services/jobs/queue";
 
@@ -122,10 +122,12 @@ export default function WholesaleAccessPage() {
 
       <s-section heading="Your tiers → storefront tags">
         {data.tiers.length === 0 ? (
-          <s-paragraph>
-            No tiers yet. Create tiers named like Wholesale / Distributor / Retailer for Clay-compatible
-            themes. <s-link href="/app/tiers">Pricing Tiers</s-link>
-          </s-paragraph>
+          <EmptyState
+            title="No pricing tiers yet"
+            body="Create tiers named like Wholesale / Distributor / Retailer so storefront tags match your Clay-compatible theme."
+          >
+            <s-button href="/app/tiers">Create tiers</s-button>
+          </EmptyState>
         ) : (
           <s-table>
             <s-table-header-row>
@@ -150,32 +152,30 @@ export default function WholesaleAccessPage() {
 
       <s-section heading="Access & lock settings">
         <div className="vpm-panel">
-          <Form method="post">
+          <Form method="post" className="vpm-form-stack">
             <input type="hidden" name="intent" value="save" />
-            <s-stack direction="block" gap="base">
-              <label>
-                <input type="checkbox" name="syncCustomerTags" defaultChecked={p.syncCustomerTags} />{" "}
-                Sync Shopify customer tags from approval + effective tier
-              </label>
-              <label>
-                <input type="checkbox" name="writePercentTag" defaultChecked={p.writePercentTag} />{" "}
-                Write <code>vpm-pct-N</code> tags (theme reads exact % — no hardcoded 30/20/10)
-              </label>
-              <s-text-field name="managedTagPrefix" label="Managed tag prefix" value={p.managedTagPrefix} />
-              <s-text-field name="approvedTag" label="Approved customer tag" value={p.approvedTag} />
-              <label>
-                Lock mode
-                <select name="lockMode" defaultValue={p.lockMode}>
-                  <option value="off">Off (theme may still lock)</option>
-                  <option value="login_required">Login required</option>
-                  <option value="approved_only">Approved only (recommended)</option>
-                  <option value="tier_tagged">Has any VPM / tier tag</option>
-                </select>
-              </label>
-              <s-text-field name="lockMessage" label="Locked (logged-in) message" value={p.lockMessage} />
-              <s-text-field name="loginMessage" label="Guest login message" value={p.loginMessage} />
-              <s-button type="submit">Save settings</s-button>
-            </s-stack>
+            <label className="vpm-check">
+              <input type="checkbox" name="syncCustomerTags" defaultChecked={p.syncCustomerTags} />
+              Sync Shopify customer tags from approval + effective tier
+            </label>
+            <label className="vpm-check">
+              <input type="checkbox" name="writePercentTag" defaultChecked={p.writePercentTag} />
+              Write <code className="vpm-code">vpm-pct-N</code> tags (theme reads exact %)
+            </label>
+            <s-text-field name="managedTagPrefix" label="Managed tag prefix" value={p.managedTagPrefix} />
+            <s-text-field name="approvedTag" label="Approved customer tag" value={p.approvedTag} />
+            <label className="vpm-field">
+              Lock mode
+              <select name="lockMode" defaultValue={p.lockMode}>
+                <option value="off">Off (theme may still lock)</option>
+                <option value="login_required">Login required</option>
+                <option value="approved_only">Approved only (recommended)</option>
+                <option value="tier_tagged">Has any VPM / tier tag</option>
+              </select>
+            </label>
+            <s-text-field name="lockMessage" label="Locked (logged-in) message" value={p.lockMessage} />
+            <s-text-field name="loginMessage" label="Guest login message" value={p.loginMessage} />
+            <s-button type="submit">Save settings</s-button>
           </Form>
         </div>
       </s-section>

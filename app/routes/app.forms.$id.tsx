@@ -4,7 +4,6 @@ import type {
   LoaderFunctionArgs,
 } from "react-router";
 import {
-  Form,
   useActionData,
   useLoaderData,
   useNavigation,
@@ -279,33 +278,36 @@ export default function FormBuilderPage() {
 
   return (
     <s-page heading={schema.title || "Form builder"}>
-      <s-stack slot="primary-action" direction="inline" gap="small">
-        <s-button href={`/app/forms/${data.form.id}/embed`} variant="tertiary">
-          Embed
-        </s-button>
-        <s-button href={`/app/forms/${data.form.id}/submissions`} variant="tertiary">
-          Submissions
-        </s-button>
-        <s-button
-          variant="secondary"
-          disabled={busy}
-          onClick={((e: Event) => {
-            e.preventDefault();
-            persist("save");
-          }) as any}
-        >
-          Save draft
-        </s-button>
-        <s-button
-          disabled={busy}
-          onClick={((e: Event) => {
-            e.preventDefault();
-            persist("publish");
-          }) as any}
-        >
-          Publish
-        </s-button>
-      </s-stack>
+      <s-link slot="breadcrumb-actions" href="/app/forms">
+        Forms
+      </s-link>
+      <s-button
+        slot="primary-action"
+        disabled={busy}
+        onClick={((e: Event) => {
+          e.preventDefault();
+          persist("publish");
+        }) as any}
+      >
+        Publish
+      </s-button>
+      <s-button
+        slot="secondary-actions"
+        variant="secondary"
+        disabled={busy}
+        onClick={((e: Event) => {
+          e.preventDefault();
+          persist("save");
+        }) as any}
+      >
+        Save draft
+      </s-button>
+      <s-button slot="secondary-actions" href={`/app/forms/${data.form.id}/submissions`} variant="tertiary">
+        Submissions
+      </s-button>
+      <s-button slot="secondary-actions" href={`/app/forms/${data.form.id}/embed`} variant="tertiary">
+        Embed
+      </s-button>
 
       {actionData?.message ? (
         <FlashBanner message={actionData.message} ok={actionData.ok} />
@@ -350,17 +352,15 @@ export default function FormBuilderPage() {
             <option value="WHOLESALE">WHOLESALE</option>
           </select>
         </label>
-        <label>
-          <span>
-            <input
-              type="checkbox"
-              checked={schema.requireLogin}
-              onChange={(e) =>
-                updateSchema((p) => ({ ...p, requireLogin: e.target.checked }))
-              }
-            />{" "}
-            Require login
-          </span>
+        <label className={styles.toolbarLabelInline}>
+          <input
+            type="checkbox"
+            checked={schema.requireLogin}
+            onChange={(e) =>
+              updateSchema((p) => ({ ...p, requireLogin: e.target.checked }))
+            }
+          />
+          Require login
         </label>
         <label>
           Description
@@ -387,32 +387,35 @@ export default function FormBuilderPage() {
       </div>
 
       {deleteImpact && pendingDeleteId ? (
-        <s-banner tone="warning">
-          Deleting this field affects: {deleteImpact.join(", ")}.{" "}
-          <s-button
-            variant="primary"
-            tone="critical"
-            onClick={((e: Event) => {
-              e.preventDefault();
-              removeField(pendingDeleteId, true);
-            }) as any}
-          >
-            Confirm delete
-          </s-button>{" "}
-          <s-button
-            variant="tertiary"
-            onClick={((e: Event) => {
-              e.preventDefault();
-              setDeleteImpact(null);
-              setPendingDeleteId(null);
-            }) as any}
-          >
-            Cancel
-          </s-button>
-        </s-banner>
+        <div className="vpm-panel">
+          <s-banner tone="warning">
+            Deleting this field affects: {deleteImpact.join(", ")}.
+          </s-banner>
+          <div className={styles.deleteConfirm}>
+            <button
+              type="button"
+              className="vpm-btn vpm-btn--critical"
+              onClick={() => removeField(pendingDeleteId, true)}
+            >
+              Confirm delete
+            </button>
+            <button
+              type="button"
+              className="vpm-btn vpm-btn--secondary"
+              onClick={() => {
+                setDeleteImpact(null);
+                setPendingDeleteId(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {previewMode === "builder" ? (
+        <s-section heading="Builder">
+        <div className={styles.builderShell}>
         <div className={styles.builder}>
           <aside className={styles.library}>
             <h3>Field library</h3>
@@ -682,42 +685,47 @@ export default function FormBuilderPage() {
               </div>
             )}
 
-            <h3 style={{ marginTop: "1.25rem" }}>Business mappings</h3>
-            <p className={styles.hint}>
-              Wholesale forms require applicant_email, company_name, and company_address
-              before publish.
-            </p>
-            {MAPPING_KEYS.map((key) => (
-              <div key={key} className={styles.mapRow}>
-                <label>
-                  {key}
-                  <select
-                    value={schema.businessMappings[key] || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      updateSchema((prev) => {
-                        const businessMappings = { ...prev.businessMappings };
-                        if (!value) delete businessMappings[key];
-                        else businessMappings[key] = value;
-                        return { ...prev, businessMappings };
-                      });
-                    }}
-                  >
-                    <option value="">—</option>
-                    {schema.fields
-                      .filter((f) => !f.presentational)
-                      .map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.label} ({f.type})
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              </div>
-            ))}
+            <details className={styles.mappings} open={schema.purpose === "WHOLESALE"}>
+              <summary>Business mappings</summary>
+              <p className={styles.hint}>
+                Wholesale forms require applicant_email, company_name, and company_address
+                before publish.
+              </p>
+              {MAPPING_KEYS.map((key) => (
+                <div key={key} className={styles.mapRow}>
+                  <label>
+                    {key}
+                    <select
+                      value={schema.businessMappings[key] || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        updateSchema((prev) => {
+                          const businessMappings = { ...prev.businessMappings };
+                          if (!value) delete businessMappings[key];
+                          else businessMappings[key] = value;
+                          return { ...prev, businessMappings };
+                        });
+                      }}
+                    >
+                      <option value="">—</option>
+                      {schema.fields
+                        .filter((f) => !f.presentational)
+                        .map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.label} ({f.type})
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                </div>
+              ))}
+            </details>
           </aside>
         </div>
+        </div>
+        </s-section>
       ) : (
+        <s-section heading="Preview">
         <div
           className={`${styles.previewFrame}${
             previewMode === "mobile" ? ` ${styles.mobile}` : ""
@@ -758,12 +766,8 @@ export default function FormBuilderPage() {
             ),
           )}
         </div>
+        </s-section>
       )}
-
-      {/* Hidden Form keeps React Router Form import used for consistency */}
-      <Form method="post" style={{ display: "none" }} aria-hidden>
-        <input type="hidden" name="intent" value="save" />
-      </Form>
     </s-page>
   );
 }

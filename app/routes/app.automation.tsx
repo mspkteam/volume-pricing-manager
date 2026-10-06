@@ -170,6 +170,15 @@ export default function AutomationPage() {
         must be running for imports and scheduled recalculations.
       </PageIntro>
 
+      <s-stack direction="inline" gap="base">
+        <s-button href="/app/simulator" variant="tertiary">
+          Open simulator
+        </s-button>
+        <s-button href="/app/activity" variant="tertiary">
+          Activity log
+        </s-button>
+      </s-stack>
+
       <StatGrid>
         <StatCard
           label="Automation"

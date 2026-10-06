@@ -34,16 +34,14 @@ export default function App() {
         <Link to="/app" rel="home">
           {displayName}
         </Link>
-        <Link to="/app/tiers">Pricing Tiers</Link>
+        <Link to="/app/tiers">Tiers</Link>
         <Link to="/app/customers">Customers</Link>
         <Link to="/app/forms">Forms</Link>
         <Link to="/app/applications">Applications</Link>
-        <Link to="/app/wholesale">Wholesale access</Link>
+        <Link to="/app/wholesale">Wholesale</Link>
         <Link to="/app/automation">Automation</Link>
-        <Link to="/app/simulator">Simulator</Link>
-        <Link to="/app/activity">Activity</Link>
         <Link to="/app/settings">Settings</Link>
-        <Link to="/app/how-it-works">How It Works</Link>
+        <Link to="/app/how-it-works">Help</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

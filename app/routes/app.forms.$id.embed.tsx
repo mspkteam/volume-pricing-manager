@@ -30,9 +30,9 @@ export default function FormEmbedPage() {
 
   return (
     <s-page heading={`Embed · ${form.title}`}>
-      <s-button slot="primary-action" href={`/app/forms/${form.id}`} variant="tertiary">
-        Back to builder
-      </s-button>
+      <s-link slot="breadcrumb-actions" href={`/app/forms/${form.id}`}>
+        Form builder
+      </s-link>
       <PageIntro>
         Publish the form, then add the Volume Pricing Form theme app block and paste the handle
         below. Theme Editor cannot dynamically list forms, so merchants must paste the handle into

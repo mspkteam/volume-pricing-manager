@@ -4,7 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
-import { EmptyState, PageIntro } from "../components/admin/ui";
+import { EmptyState, PageIntro, ApplicationStatusBadge } from "../components/admin/ui";
 import { formatDateTime } from "../lib/format";
 
 const PAGE_SIZE = 30;
@@ -76,22 +76,20 @@ export default function ApplicationsInbox() {
       </PageIntro>
 
       <s-section heading="Filter">
-        <Form method="get">
-          <s-stack direction="inline" gap="base">
-            <s-text-field name="q" label="Search" value={data.q} />
-            <label>
-              Status{" "}
-              <select name="status" defaultValue={data.status}>
-                <option value="">All</option>
-                <option value="PENDING">PENDING</option>
-                <option value="NEEDS_INFORMATION">NEEDS_INFORMATION</option>
-                <option value="APPROVED">APPROVED</option>
-                <option value="REJECTED">REJECTED</option>
-                <option value="WITHDRAWN">WITHDRAWN</option>
-              </select>
-            </label>
-            <s-button type="submit">Apply</s-button>
-          </s-stack>
+        <Form method="get" className="vpm-filter-bar">
+          <s-text-field name="q" label="Search" value={data.q} />
+          <label>
+            Status
+            <select name="status" defaultValue={data.status}>
+              <option value="">All</option>
+              <option value="PENDING">Pending</option>
+              <option value="NEEDS_INFORMATION">Needs information</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="WITHDRAWN">Withdrawn</option>
+            </select>
+          </label>
+          <s-button type="submit">Apply</s-button>
         </Form>
       </s-section>
 
@@ -125,7 +123,7 @@ export default function ApplicationsInbox() {
                   </s-table-cell>
                   <s-table-cell>{s.companyName || "—"}</s-table-cell>
                   <s-table-cell>
-                    <s-badge>{s.status}</s-badge>
+                    <ApplicationStatusBadge status={s.status} />
                   </s-table-cell>
                   <s-table-cell>{formatDateTime(s.submittedAt)}</s-table-cell>
                 </s-table-row>

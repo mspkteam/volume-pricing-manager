@@ -163,14 +163,17 @@ export default function SettingsPage() {
 
       <s-section heading="App settings">
         <div className="vpm-panel">
-        <Form method="post">
+        <Form method="post" className="vpm-form-stack">
           <input type="hidden" name="intent" value="save" />
           <s-stack direction="block" gap="base">
             <s-text-field name="displayName" label="App display name" value={data.shop.displayName} />
-            <select name="discountCombination" defaultValue={data.shop.discountCombination}>
-              <option value="stack_with_product_discounts">Stack with product discounts</option>
-              <option value="exclusive">Exclusive (avoid double discounting where possible)</option>
-            </select>
+            <label className="vpm-field">
+              Discount combination
+              <select name="discountCombination" defaultValue={data.shop.discountCombination}>
+                <option value="stack_with_product_discounts">Stack with product discounts</option>
+                <option value="exclusive">Exclusive (avoid double discounting where possible)</option>
+              </select>
+            </label>
             <s-text-field
               name="excludedProductIds"
               label="Excluded product GIDs (comma-separated)"

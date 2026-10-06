@@ -163,14 +163,28 @@ export default function Dashboard() {
         <div className="vpm-meta-row">
           <s-stack direction="inline" gap="base">
             <s-button href="/app/tiers">Configure tiers</s-button>
-            <s-button href="/app/customers" variant="secondary">
-              Import / review customers
+            <s-button href="/app/forms" variant="secondary">
+              Forms
             </s-button>
-            <s-button href="/app/settings" variant="tertiary">
-              Settings
+            <s-button href="/app/wholesale" variant="tertiary">
+              Wholesale
             </s-button>
           </s-stack>
         </div>
+      </s-section>
+
+      <s-section heading="Tools">
+        <s-stack direction="inline" gap="base">
+          <s-button href="/app/simulator" variant="secondary">
+            Simulator
+          </s-button>
+          <s-button href="/app/activity" variant="secondary">
+            Activity log
+          </s-button>
+          <s-button href="/app/applications" variant="secondary">
+            Applications inbox
+          </s-button>
+        </s-stack>
       </s-section>
 
       <s-section slot="aside" heading="At a glance">

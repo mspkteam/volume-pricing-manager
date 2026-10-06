@@ -7,7 +7,7 @@ import { ensureShop } from "../services/shop/shop-service";
 import { getForm } from "../services/forms/form-service";
 import { reviewSubmission } from "../services/forms/review-service";
 import type { FormSchema } from "../services/forms/field-registry";
-import { FlashBanner, PageIntro } from "../components/admin/ui";
+import { ApplicationStatusBadge, FlashBanner, PageIntro } from "../components/admin/ui";
 import { formatDateTime } from "../lib/format";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -142,13 +142,9 @@ export default function SubmissionDetailPage() {
 
   return (
     <s-page heading={s.applicantName || s.applicantEmail || "Submission"}>
-      <s-button
-        slot="primary-action"
-        href={`/app/forms/${data.form.id}/submissions`}
-        variant="tertiary"
-      >
-        Back to list
-      </s-button>
+      <s-link slot="breadcrumb-actions" href={`/app/forms/${data.form.id}/submissions`}>
+        Submissions
+      </s-link>
 
       {actionData?.message ? (
         <FlashBanner message={actionData.message} ok={actionData.ok} />
@@ -160,9 +156,9 @@ export default function SubmissionDetailPage() {
       </PageIntro>
 
       <s-section heading="Status">
-        <s-stack direction="block" gap="base">
+        <div className="vpm-panel vpm-stack-tight">
           <s-paragraph>
-            Application: <s-badge>{s.status}</s-badge> · Identity: {s.identityKind}
+            Application: <ApplicationStatusBadge status={s.status} /> · Identity: {s.identityKind}
           </s-paragraph>
           <s-paragraph>
             Submitted {formatDateTime(s.submittedAt)}
@@ -183,7 +179,7 @@ export default function SubmissionDetailPage() {
           ) : (
             <s-paragraph>No linked customer profile yet (guest or unlinked).</s-paragraph>
           )}
-        </s-stack>
+        </div>
       </s-section>
 
       <s-section heading="Applicant">
@@ -196,37 +192,41 @@ export default function SubmissionDetailPage() {
       </s-section>
 
       <s-section heading="Answers">
-        <s-table>
-          <s-table-header-row>
-            <s-table-header>Field</s-table-header>
-            <s-table-header>Type</s-table-header>
-            <s-table-header>Value</s-table-header>
-          </s-table-header-row>
-          <s-table-body>
-            {data.customFields.map((f) => (
-              <s-table-row key={f.id}>
-                <s-table-cell>{f.label}</s-table-cell>
-                <s-table-cell>{f.type}</s-table-cell>
-                <s-table-cell>
-                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", font: "inherit" }}>
-                    {formatAnswer(f.value)}
-                  </pre>
-                </s-table-cell>
-              </s-table-row>
-            ))}
-          </s-table-body>
-        </s-table>
+        {data.customFields.length === 0 ? (
+          <s-paragraph>No answer fields on this submission.</s-paragraph>
+        ) : (
+          <s-table>
+            <s-table-header-row>
+              <s-table-header>Field</s-table-header>
+              <s-table-header>Type</s-table-header>
+              <s-table-header>Value</s-table-header>
+            </s-table-header-row>
+            <s-table-body>
+              {data.customFields.map((f) => (
+                <s-table-row key={f.id}>
+                  <s-table-cell>{f.label}</s-table-cell>
+                  <s-table-cell>{f.type}</s-table-cell>
+                  <s-table-cell>
+                    <pre style={{ margin: 0, whiteSpace: "pre-wrap", font: "inherit" }}>
+                      {formatAnswer(f.value)}
+                    </pre>
+                  </s-table-cell>
+                </s-table-row>
+              ))}
+            </s-table-body>
+          </s-table>
+        )}
       </s-section>
 
       <s-section heading="Review">
-        <Form method="post">
-          <s-stack direction="block" gap="base">
+        <div className="vpm-panel">
+          <Form method="post" className="vpm-form-stack">
             <s-text-field
               name="customerMessage"
               label="Customer-facing message"
               value={s.customerMessage || ""}
             />
-            <label className="blockLabel">
+            <label className="vpm-field">
               Internal notes
               <textarea name="internalNotes" rows={3} defaultValue={s.internalNotes || ""} />
             </label>
@@ -236,11 +236,11 @@ export default function SubmissionDetailPage() {
               spend-based qualification.
             </s-banner>
 
-            <label>
+            <label className="vpm-check">
               <input type="checkbox" name="projectedVolumeOverride" /> Starting tier override
               (projected volume)
             </label>
-            <label>
+            <label className="vpm-field">
               Starting tier
               <select name="startingTierId" defaultValue="">
                 <option value="">—</option>
@@ -252,34 +252,44 @@ export default function SubmissionDetailPage() {
               </select>
             </label>
             <s-text-field name="overrideReason" label="Override reason" />
-            <label>
+            <label className="vpm-field">
               Override expiry (optional)
               <input type="datetime-local" name="overrideExpiresAt" />
             </label>
 
-            <label>
+            <label className="vpm-check">
               <input type="checkbox" name="markLicenseVerified" /> Mark license verified
             </label>
-            <label>
+            <label className="vpm-check">
               <input type="checkbox" name="markResaleVerified" /> Mark resale cert verified
             </label>
-            <label>
+            <label className="vpm-check">
               <input type="checkbox" name="markAgreementVerified" /> Mark purchase agreement verified
             </label>
 
-            <s-stack direction="inline" gap="base">
-              <button type="submit" name="intent" value="approve">
+            <div className="vpm-actions">
+              <button type="submit" name="intent" value="approve" className="vpm-btn">
                 Approve
               </button>
-              <button type="submit" name="intent" value="needs_information">
+              <button
+                type="submit"
+                name="intent"
+                value="needs_information"
+                className="vpm-btn vpm-btn--secondary"
+              >
                 Needs information
               </button>
-              <button type="submit" name="intent" value="reject">
+              <button
+                type="submit"
+                name="intent"
+                value="reject"
+                className="vpm-btn vpm-btn--critical"
+              >
                 Reject
               </button>
-            </s-stack>
-          </s-stack>
-        </Form>
+            </div>
+          </Form>
+        </div>
       </s-section>
     </s-page>
   );

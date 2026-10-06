@@ -5,7 +5,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
 import { formatMoney, bpsToPercentString } from "../lib/money";
-import { EmptyState, PageIntro } from "../components/admin/ui";
+import { EmptyState, PageIntro, buildQuery } from "../components/admin/ui";
 import { pricingStatusLabel } from "../lib/pricing-status";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -171,12 +171,36 @@ export default function CustomersPage() {
         )}
         <s-paragraph>
           Page {data.page} of {data.pages}
-          {data.page < data.pages ? (
-            <>
-              {" "}
-              · <s-link href={`?page=${data.page + 1}`}>Next</s-link>
-            </>
-          ) : null}
+          <span className="vpm-pagination">
+            {data.page > 1 ? (
+              <s-link
+                href={buildQuery({
+                  q: data.filters.q,
+                  tier: data.filters.tierId,
+                  approval: data.filters.approval,
+                  override: data.filters.override,
+                  sync: data.filters.sync,
+                  page: data.page - 1,
+                })}
+              >
+                Previous
+              </s-link>
+            ) : null}
+            {data.page < data.pages ? (
+              <s-link
+                href={buildQuery({
+                  q: data.filters.q,
+                  tier: data.filters.tierId,
+                  approval: data.filters.approval,
+                  override: data.filters.override,
+                  sync: data.filters.sync,
+                  page: data.page + 1,
+                })}
+              >
+                Next
+              </s-link>
+            ) : null}
+          </span>
         </s-paragraph>
       </s-section>
     </s-page>
