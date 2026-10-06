@@ -255,13 +255,74 @@
 .vpm-form-stack select,
 .vpm-form-stack textarea,
 .vpm-form-stack input[type="text"],
-.vpm-form-stack input[type="datetime-local"] {
+.vpm-form-stack input[type="number"],
+.vpm-form-stack input[type="email"],
+.vpm-form-stack input[type="color"],
+.vpm-form-stack input[type="datetime-local"],
+.vpm-form-stack input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) {
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--p-color-border, #8c9196);
   border-radius: 8px;
   font: inherit;
   background: var(--p-color-bg-surface, #fff);
   max-width: 100%;
+  box-sizing: border-box;
+}
+
+.vpm-form-stack input[type="color"] {
+  min-height: 2.5rem;
+  max-width: 6rem;
+  padding: 0.25rem;
+}
+
+.vpm-link {
+  color: var(--p-color-text-link, #005bd3);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.vpm-link:hover {
+  text-decoration: underline;
+}
+
+a.vpm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+a.vpm-btn:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+
+.vpm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.vpm-table th,
+.vpm-table td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--p-color-border-secondary, #e1e3e5);
+  vertical-align: middle;
+}
+
+.vpm-table th {
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--p-color-text-secondary, #616161);
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+}
+
+.vpm-table tr:last-child td {
+  border-bottom: none;
 }
 
 .vpm-form-stack textarea {

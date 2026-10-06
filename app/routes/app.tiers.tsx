@@ -12,7 +12,15 @@ import {
 } from "../services/tiers/tier-service";
 import { buildSpendRanges } from "../lib/policies";
 import { formatMoney, bpsToPercentString } from "../lib/money";
-import { EmptyState, FlashBanner, PageIntro, TierName } from "../components/admin/ui";
+import {
+  AdminLink,
+  EmptyState,
+  Field,
+  FlashBanner,
+  PageIntro,
+  SubmitButton,
+  TierName,
+} from "../components/admin/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -56,22 +64,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { ok: true, message: "Starter preset applied. You can rename or edit any tier." };
     }
     if (intent === "create") {
+      const name = String(form.get("name") || "").trim();
+      if (!name) return { ok: false, message: "Tier name is required." };
       await createTier(
         prisma,
         shop.id,
         {
-          name: String(form.get("name") || "").trim(),
-          description: String(form.get("description") || ""),
-          badgeColor: String(form.get("badgeColor") || "#5C6AC4"),
-          minSpend: String(form.get("minSpend") || "0"),
-          discountPercent: Number(form.get("discountPercent") || 0),
-          requiresApproval: form.get("requiresApproval") === "on",
-          requiresLicense: form.get("requiresLicense") === "on",
-          requiresResaleCert: form.get("requiresResaleCert") === "on",
-          requiresPurchaseAgreement: form.get("requiresPurchaseAgreement") === "on",
+          name,
+          description: "",
+          badgeColor: "#5C6AC4",
+          minSpend: String(form.get("minSpend") || "0").replace(/[^0-9.]/g, "") || "0",
+          discountPercent: Number(
+            String(form.get("discountPercent") || "0").replace(/[^0-9.]/g, "") || 0,
+          ),
+          requiresApproval: false,
+          requiresLicense: false,
+          requiresResaleCert: false,
+          requiresPurchaseAgreement: false,
           isActive: true,
-          isFallback: form.get("isFallback") === "on",
-          displayOrder: Number(form.get("displayOrder") || 0),
+          isFallback: false,
+          displayOrder: 0,
         },
         session.shop,
       );
@@ -97,63 +109,72 @@ export default function TiersPage() {
 
   return (
     <s-page heading="Pricing Tiers">
-      <s-button slot="primary-action" href="/app/tiers/new">
-        New tier
-      </s-button>
+      <div slot="primary-action">
+        <AdminLink to="/app/tiers/new" className="vpm-btn">
+          New tier
+        </AdminLink>
+      </div>
 
       {actionData?.message ? (
         <FlashBanner message={actionData.message} ok={actionData.ok} />
       ) : null}
 
       <PageIntro>
-        Thresholds use {currencyCode}. Ranges are half-open: each tier runs up to, but does not
-        include, the next minimum. Renaming keeps the same internal ID.
+        Each tier starts at its minimum spend in {currencyCode} and runs up to (but not including)
+        the next tier&apos;s minimum. Click Edit to change a tier.
       </PageIntro>
 
       <s-section heading="Your tiers">
         {tiers.length === 0 ? (
           <EmptyState
             title="No tiers configured"
-            body="Create your own names and thresholds, or apply the optional HVAC starter preset as a starting point."
+            body="Create your own names and thresholds, or apply the optional HVAC starter preset."
           >
             <Form method="post">
               <input type="hidden" name="intent" value="preset" />
-              <s-button type="submit">Apply optional starter preset</s-button>
+              <SubmitButton>Apply starter preset</SubmitButton>
             </Form>
+            <AdminLink to="/app/tiers/new" className="vpm-btn vpm-btn--secondary">
+              Create tier
+            </AdminLink>
           </EmptyState>
         ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Name</s-table-header>
-              <s-table-header>Spend range</s-table-header>
-              <s-table-header>Discount</s-table-header>
-              <s-table-header>Approval</s-table-header>
-              <s-table-header>Customers</s-table-header>
-              <s-table-header>Status</s-table-header>
-              <s-table-header>Actions</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {tiers.map((t) => (
-                <s-table-row key={t.id}>
-                  <s-table-cell>
-                    <TierName
-                      name={t.name}
-                      badgeColor={t.badgeColor}
-                      fallback={t.isFallback}
-                    />
-                  </s-table-cell>
-                  <s-table-cell>{t.rangeLabel}</s-table-cell>
-                  <s-table-cell>{t.discount}%</s-table-cell>
-                  <s-table-cell>{t.requiresApproval ? "Required" : "—"}</s-table-cell>
-                  <s-table-cell>{t.assigned}</s-table-cell>
-                  <s-table-cell>{t.isActive ? "Active" : "Inactive"}</s-table-cell>
-                  <s-table-cell>
-                    <s-link href={`/app/tiers/${t.id}`}>Edit</s-link>
-                  </s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
+          <div className="vpm-panel" style={{ padding: 0, overflow: "auto" }}>
+            <table className="vpm-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Spend range</th>
+                  <th>Discount</th>
+                  <th>Approval</th>
+                  <th>Customers</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tiers.map((t) => (
+                  <tr key={t.id}>
+                    <td>
+                      <TierName
+                        name={t.name}
+                        badgeColor={t.badgeColor}
+                        fallback={t.isFallback}
+                      />
+                    </td>
+                    <td>{t.rangeLabel}</td>
+                    <td>{t.discount}%</td>
+                    <td>{t.requiresApproval ? "Required" : "—"}</td>
+                    <td>{t.assigned}</td>
+                    <td>{t.isActive ? "Active" : "Inactive"}</td>
+                    <td>
+                      <AdminLink to={`/app/tiers/${t.id}`}>Edit</AdminLink>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </s-section>
 
@@ -161,21 +182,26 @@ export default function TiersPage() {
         <div className="vpm-panel">
           <Form method="post" className="vpm-form-stack">
             <input type="hidden" name="intent" value="create" />
-            <s-stack direction="block" gap="base">
-              <s-text-field name="name" label="Tier name" required />
-              <s-text-field
-                name="minSpend"
-                label={`Min spend (${currencyCode})`}
-                defaultValue="0"
-              />
-              <s-text-field name="discountPercent" label="Discount %" defaultValue="0" />
-              <s-button type="submit">Create tier</s-button>
-            </s-stack>
+            <Field label="Tier name" name="name" required placeholder="e.g. Tier B" />
+            <Field
+              label={`Min spend (${currencyCode})`}
+              name="minSpend"
+              inputMode="decimal"
+              defaultValue="0"
+            />
+            <Field
+              label="Discount %"
+              name="discountPercent"
+              inputMode="decimal"
+              defaultValue="0"
+            />
+            <div className="vpm-actions">
+              <SubmitButton>Create tier</SubmitButton>
+              <AdminLink to="/app/tiers/new" className="vpm-btn vpm-btn--secondary">
+                Full editor
+              </AdminLink>
+            </div>
           </Form>
-          <s-paragraph>
-            Need more options?{" "}
-            <s-link href="/app/tiers/new">Open the full tier editor</s-link>.
-          </s-paragraph>
         </div>
       </s-section>
     </s-page>

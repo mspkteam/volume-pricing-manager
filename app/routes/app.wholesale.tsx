@@ -9,7 +9,7 @@ import {
   parseWholesaleAccessPolicy,
   type WholesaleLockMode,
 } from "../services/wholesale/policy";
-import { EmptyState, FlashBanner, PageIntro } from "../components/admin/ui";
+import { AdminLink, EmptyState, Field, FlashBanner, PageIntro, SubmitButton } from "../components/admin/ui";
 import { writeAuditLog } from "../services/audit/audit-log";
 import { enqueueJob, JOB_TYPES } from "../services/jobs/queue";
 
@@ -126,7 +126,9 @@ export default function WholesaleAccessPage() {
             title="No pricing tiers yet"
             body="Create tiers named like Wholesale / Distributor / Retailer so storefront tags match your Clay-compatible theme."
           >
-            <s-button href="/app/tiers">Create tiers</s-button>
+            <AdminLink to="/app/tiers" className="vpm-btn">
+              Create tiers
+            </AdminLink>
           </EmptyState>
         ) : (
           <s-table>
@@ -162,8 +164,12 @@ export default function WholesaleAccessPage() {
               <input type="checkbox" name="writePercentTag" defaultChecked={p.writePercentTag} />
               Write <code className="vpm-code">vpm-pct-N</code> tags (theme reads exact %)
             </label>
-            <s-text-field name="managedTagPrefix" label="Managed tag prefix" defaultValue={p.managedTagPrefix} />
-            <s-text-field name="approvedTag" label="Approved customer tag" defaultValue={p.approvedTag} />
+            <Field
+              name="managedTagPrefix"
+              label="Managed tag prefix"
+              defaultValue={p.managedTagPrefix}
+            />
+            <Field name="approvedTag" label="Approved customer tag" defaultValue={p.approvedTag} />
             <label className="vpm-field">
               Lock mode
               <select name="lockMode" defaultValue={p.lockMode}>
@@ -173,9 +179,9 @@ export default function WholesaleAccessPage() {
                 <option value="tier_tagged">Has any VPM / tier tag</option>
               </select>
             </label>
-            <s-text-field name="lockMessage" label="Locked (logged-in) message" defaultValue={p.lockMessage} />
-            <s-text-field name="loginMessage" label="Guest login message" defaultValue={p.loginMessage} />
-            <s-button type="submit">Save settings</s-button>
+            <Field name="lockMessage" label="Locked (logged-in) message" defaultValue={p.lockMessage} />
+            <Field name="loginMessage" label="Guest login message" defaultValue={p.loginMessage} />
+            <SubmitButton>Save settings</SubmitButton>
           </Form>
         </div>
       </s-section>
@@ -183,13 +189,12 @@ export default function WholesaleAccessPage() {
       <s-section heading="Actions">
         <Form method="post">
           <input type="hidden" name="intent" value="resync_tags" />
-          <s-button type="submit" variant="secondary">
-            Re-sync tags for all customers
-          </s-button>
+          <SubmitButton variant="secondary">Re-sync tags for all customers</SubmitButton>
         </Form>
         <s-paragraph>
-          Also: publish a form under <s-link href="/app/forms">Forms</s-link>, then in Theme Editor replace
-          the Clay registration block on the Applications page with the Volume Pricing form block.
+          Also: publish a form under <AdminLink to="/app/forms">Forms</AdminLink>, then in Theme
+          Editor replace the Clay registration block on the Applications page with the Volume Pricing
+          form block.
         </s-paragraph>
       </s-section>
     </s-page>

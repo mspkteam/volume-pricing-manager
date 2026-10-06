@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { Link } from "react-router";
 import {
   pricingCompatibilityLabel,
   pricingStatusLabel,
@@ -54,9 +55,144 @@ export function EmptyState({
       <div className="vpm-empty">
         <p className="vpm-empty-title">{title}</p>
         <p className="vpm-empty-body">{body}</p>
-        {children ? <s-stack direction="inline" gap="base">{children}</s-stack> : null}
+        {children ? (
+          <div className="vpm-actions" style={{ justifyContent: "center" }}>
+            {children}
+          </div>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+/** In-app navigation that works with React Router (s-link often does not). */
+export function AdminLink({
+  to,
+  children,
+  className,
+}: {
+  to: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Link to={to} className={className || "vpm-link"}>
+      {children}
+    </Link>
+  );
+}
+
+export function Field({
+  label,
+  name,
+  type = "text",
+  defaultValue,
+  required,
+  placeholder,
+  ...rest
+}: {
+  label: string;
+  name: string;
+  type?: string;
+  defaultValue?: string | number | null;
+  required?: boolean;
+  placeholder?: string;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "defaultValue" | "type">) {
+  return (
+    <label className="vpm-field">
+      {label}
+      <input
+        type={type}
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        required={required}
+        placeholder={placeholder}
+        {...rest}
+      />
+    </label>
+  );
+}
+
+export function TextArea({
+  label,
+  name,
+  defaultValue,
+  rows = 3,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | null;
+  rows?: number;
+}) {
+  return (
+    <label className="vpm-field">
+      {label}
+      <textarea name={name} rows={rows} defaultValue={defaultValue ?? ""} />
+    </label>
+  );
+}
+
+export function Check({
+  label,
+  name,
+  defaultChecked,
+}: {
+  label: string;
+  name: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <label className="vpm-check">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} /> {label}
+    </label>
+  );
+}
+
+export function SelectField({
+  label,
+  name,
+  defaultValue,
+  children,
+  ...rest
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string;
+  children: ReactNode;
+} & Omit<SelectHTMLAttributes<HTMLSelectElement>, "name" | "defaultValue">) {
+  return (
+    <label className="vpm-field">
+      {label}
+      <select name={name} defaultValue={defaultValue} {...rest}>
+        {children}
+      </select>
+    </label>
+  );
+}
+
+export function SubmitButton({
+  children,
+  variant,
+  name,
+  value,
+  disabled,
+}: {
+  children: ReactNode;
+  variant?: "primary" | "secondary" | "critical";
+  name?: string;
+  value?: string;
+  disabled?: boolean;
+}) {
+  const cls =
+    variant === "secondary"
+      ? "vpm-btn vpm-btn--secondary"
+      : variant === "critical"
+        ? "vpm-btn vpm-btn--critical"
+        : "vpm-btn";
+  return (
+    <button type="submit" className={cls} name={name} value={value} disabled={disabled}>
+      {children}
+    </button>
   );
 }
 
@@ -111,7 +247,7 @@ export function ChecklistPanel({
               {item.done ? "✓" : ""}
             </span>
             {item.href && !item.done ? (
-              <s-link href={item.href}>{item.label}</s-link>
+              <AdminLink to={item.href}>{item.label}</AdminLink>
             ) : (
               <span>{item.label}</span>
             )}
@@ -171,4 +307,3 @@ export function buildQuery(params: Record<string, string | number | undefined | 
   const s = q.toString();
   return s ? `?${s}` : "";
 }
-

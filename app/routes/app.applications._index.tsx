@@ -4,7 +4,14 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
-import { EmptyState, PageIntro, ApplicationStatusBadge } from "../components/admin/ui";
+import {
+  AdminLink,
+  ApplicationStatusBadge,
+  EmptyState,
+  Field,
+  PageIntro,
+  SubmitButton,
+} from "../components/admin/ui";
 import { formatDateTime } from "../lib/format";
 
 const PAGE_SIZE = 30;
@@ -77,7 +84,7 @@ export default function ApplicationsInbox() {
 
       <s-section heading="Filter">
         <Form method="get" className="vpm-filter-bar">
-          <s-text-field name="q" label="Search" defaultValue={data.q} />
+          <Field label="Search" name="q" defaultValue={data.q} />
           <label>
             Status
             <select name="status" defaultValue={data.status}>
@@ -89,69 +96,72 @@ export default function ApplicationsInbox() {
               <option value="WITHDRAWN">Withdrawn</option>
             </select>
           </label>
-          <s-button type="submit">Apply</s-button>
+          <SubmitButton>Apply</SubmitButton>
         </Form>
       </s-section>
 
       <s-section heading={`${data.total} application(s)`}>
         {data.submissions.length === 0 ? (
-          <EmptyState
-            title="No applications yet"
-            body="Published forms will send submissions here."
-          >
-            <s-button href="/app/forms">Open forms</s-button>
+          <EmptyState title="No applications yet" body="Published forms will send submissions here.">
+            <AdminLink to="/app/forms" className="vpm-btn">
+              Open forms
+            </AdminLink>
           </EmptyState>
         ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Applicant</s-table-header>
-              <s-table-header>Form</s-table-header>
-              <s-table-header>Company</s-table-header>
-              <s-table-header>Status</s-table-header>
-              <s-table-header>Submitted</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {data.submissions.map((s) => (
-                <s-table-row key={s.id}>
-                  <s-table-cell>
-                    <s-link href={`/app/forms/${s.formId}/submissions/${s.id}`}>
-                      {s.applicantName || s.applicantEmail || s.id}
-                    </s-link>
-                  </s-table-cell>
-                  <s-table-cell>
-                    <s-link href={`/app/forms/${s.formId}`}>{s.formTitle}</s-link>
-                  </s-table-cell>
-                  <s-table-cell>{s.companyName || "—"}</s-table-cell>
-                  <s-table-cell>
-                    <ApplicationStatusBadge status={s.status} />
-                  </s-table-cell>
-                  <s-table-cell>{formatDateTime(s.submittedAt)}</s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
+          <div className="vpm-panel" style={{ padding: 0, overflow: "auto" }}>
+            <table className="vpm-table">
+              <thead>
+                <tr>
+                  <th>Applicant</th>
+                  <th>Form</th>
+                  <th>Company</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.submissions.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      <AdminLink to={`/app/forms/${s.formId}/submissions/${s.id}`}>
+                        {s.applicantName || s.applicantEmail || s.id}
+                      </AdminLink>
+                    </td>
+                    <td>
+                      <AdminLink to={`/app/forms/${s.formId}`}>{s.formTitle}</AdminLink>
+                    </td>
+                    <td>{s.companyName || "—"}</td>
+                    <td>
+                      <ApplicationStatusBadge status={s.status} />
+                    </td>
+                    <td>{formatDateTime(s.submittedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {data.totalPages > 1 ? (
-          <s-stack direction="inline" gap="base">
+          <div className="vpm-pagination">
             {data.page > 1 ? (
-              <s-link
-                href={`?q=${encodeURIComponent(data.q)}&status=${encodeURIComponent(data.status)}&page=${data.page - 1}`}
+              <AdminLink
+                to={`?q=${encodeURIComponent(data.q)}&status=${encodeURIComponent(data.status)}&page=${data.page - 1}`}
               >
                 Previous
-              </s-link>
+              </AdminLink>
             ) : null}
             <span>
               Page {data.page} of {data.totalPages}
             </span>
             {data.page < data.totalPages ? (
-              <s-link
-                href={`?q=${encodeURIComponent(data.q)}&status=${encodeURIComponent(data.status)}&page=${data.page + 1}`}
+              <AdminLink
+                to={`?q=${encodeURIComponent(data.q)}&status=${encodeURIComponent(data.status)}&page=${data.page + 1}`}
               >
                 Next
-              </s-link>
+              </AdminLink>
             ) : null}
-          </s-stack>
+          </div>
         ) : null}
       </s-section>
     </s-page>

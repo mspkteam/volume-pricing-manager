@@ -10,7 +10,7 @@ import {
   duplicateForm,
   listForms,
 } from "../services/forms/form-service";
-import { EmptyState, FlashBanner, PageIntro } from "../components/admin/ui";
+import { EmptyState, FlashBanner, PageIntro, AdminLink } from "../components/admin/ui";
 import { formatDateTime } from "../lib/format";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -67,13 +67,15 @@ export default function FormsIndex() {
 
   return (
     <s-page heading="Forms">
-      <s-button slot="primary-action" href="/app/forms/new">
-        Create form
-      </s-button>
+      <div slot="primary-action">
+        <AdminLink to="/app/forms/new" className="vpm-btn">
+          Create form
+        </AdminLink>
+      </div>
       {actionData?.message ? <FlashBanner message={actionData.message} ok={actionData.ok} /> : null}
       <PageIntro>
         Build a form, publish it, then paste the handle into the theme app block. Review submissions
-        under <s-link href="/app/applications">Applications</s-link>.
+        under <AdminLink to="/app/applications">Applications</AdminLink>.
       </PageIntro>
 
       <s-section heading="Your forms">
@@ -82,59 +84,67 @@ export default function FormsIndex() {
             title="No forms yet"
             body="Start blank or use the Contractor Wholesale Application template — both use the same builder."
           >
-            <s-button href="/app/forms/new">Create form</s-button>
+            <AdminLink to="/app/forms/new" className="vpm-btn">
+              Create form
+            </AdminLink>
           </EmptyState>
         ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Title</s-table-header>
-              <s-table-header>Handle</s-table-header>
-              <s-table-header>Status</s-table-header>
-              <s-table-header>Purpose</s-table-header>
-              <s-table-header>Submissions</s-table-header>
-              <s-table-header>Updated</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {forms.map((f) => (
-                <s-table-row key={f.id}>
-                  <s-table-cell>
-                    <s-link href={`/app/forms/${f.id}`}>{f.title}</s-link>
-                    <div className="vpm-change-meta">
-                      <s-link href={`/app/forms/${f.id}/embed`}>Embed</s-link>
-                      {" · "}
-                      <Form method="post" style={{ display: "inline" }}>
-                        <input type="hidden" name="intent" value="duplicate" />
-                        <input type="hidden" name="formId" value={f.id} />
-                        <button type="submit" className="vpm-linkish">
-                          Duplicate
-                        </button>
-                      </Form>
-                      {" · "}
-                      <Form method="post" style={{ display: "inline" }}>
-                        <input type="hidden" name="intent" value="archive" />
-                        <input type="hidden" name="formId" value={f.id} />
-                        <button type="submit" className="vpm-linkish vpm-linkish--critical">
-                          Archive
-                        </button>
-                      </Form>
-                    </div>
-                  </s-table-cell>
-                  <s-table-cell>
-                    <code className="vpm-code">{f.handle}</code>
-                  </s-table-cell>
-                  <s-table-cell>
-                    <s-badge tone={f.status === "PUBLISHED" ? "success" : undefined}>{f.status}</s-badge>
-                    {f.publishedVersion ? ` v${f.publishedVersion}` : ""}
-                  </s-table-cell>
-                  <s-table-cell>{f.purpose}</s-table-cell>
-                  <s-table-cell>
-                    <s-link href={`/app/forms/${f.id}/submissions`}>{f.submissions}</s-link>
-                  </s-table-cell>
-                  <s-table-cell>{formatDateTime(f.updatedAt)}</s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
+          <div className="vpm-panel" style={{ padding: 0, overflow: "auto" }}>
+            <table className="vpm-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Handle</th>
+                  <th>Status</th>
+                  <th>Purpose</th>
+                  <th>Submissions</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {forms.map((f) => (
+                  <tr key={f.id}>
+                    <td>
+                      <AdminLink to={`/app/forms/${f.id}`}>{f.title}</AdminLink>
+                      <div className="vpm-change-meta">
+                        <AdminLink to={`/app/forms/${f.id}/embed`}>Embed</AdminLink>
+                        {" · "}
+                        <Form method="post" style={{ display: "inline" }}>
+                          <input type="hidden" name="intent" value="duplicate" />
+                          <input type="hidden" name="formId" value={f.id} />
+                          <button type="submit" className="vpm-linkish">
+                            Duplicate
+                          </button>
+                        </Form>
+                        {" · "}
+                        <Form method="post" style={{ display: "inline" }}>
+                          <input type="hidden" name="intent" value="archive" />
+                          <input type="hidden" name="formId" value={f.id} />
+                          <button type="submit" className="vpm-linkish vpm-linkish--critical">
+                            Archive
+                          </button>
+                        </Form>
+                      </div>
+                    </td>
+                    <td>
+                      <code className="vpm-code">{f.handle}</code>
+                    </td>
+                    <td>
+                      <s-badge tone={f.status === "PUBLISHED" ? "success" : undefined}>
+                        {f.status}
+                      </s-badge>
+                      {f.publishedVersion ? ` v${f.publishedVersion}` : ""}
+                    </td>
+                    <td>{f.purpose}</td>
+                    <td>
+                      <AdminLink to={`/app/forms/${f.id}/submissions`}>{f.submissions}</AdminLink>
+                    </td>
+                    <td>{formatDateTime(f.updatedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </s-section>
     </s-page>

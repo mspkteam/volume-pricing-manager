@@ -7,7 +7,7 @@ import { ensureShop, parseSpendPolicy } from "../services/shop/shop-service";
 import { getPricingProvider } from "../services/pricing/discount-function-provider";
 import { writeAuditLog } from "../services/audit/audit-log";
 import type { SpendPolicy } from "../lib/policies";
-import { FlashBanner, PageIntro, PricingStatusBadge } from "../components/admin/ui";
+import { AdminLink, Field, FlashBanner, PageIntro, PricingStatusBadge, SubmitButton } from "../components/admin/ui";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -123,7 +123,7 @@ export default function SettingsPage() {
       <PageIntro>
         Shop currency and timezone come from Shopify. Configure spend exclusions, discount behavior,
         and pricing provider compatibility here. Spend policies and the job worker live under{" "}
-        <s-link href="/app/automation">Automation</s-link>.
+        <AdminLink to="/app/automation">Automation</AdminLink>.
       </PageIntro>
 
       <s-section heading="Shop display">
@@ -164,10 +164,13 @@ export default function SettingsPage() {
 
       <s-section heading="App settings">
         <div className="vpm-panel">
-        <Form method="post" className="vpm-form-stack">
-          <input type="hidden" name="intent" value="save" />
-          <s-stack direction="block" gap="base">
-            <s-text-field name="displayName" label="App display name" defaultValue={data.shop.displayName} />
+          <Form method="post" className="vpm-form-stack">
+            <input type="hidden" name="intent" value="save" />
+            <Field
+              label="App display name"
+              name="displayName"
+              defaultValue={data.shop.displayName}
+            />
             <label className="vpm-field">
               Discount combination
               <select name="discountCombination" defaultValue={data.shop.discountCombination}>
@@ -175,28 +178,27 @@ export default function SettingsPage() {
                 <option value="exclusive">Exclusive (avoid double discounting where possible)</option>
               </select>
             </label>
-            <s-text-field
+            <Field
               name="excludedProductIds"
               label="Excluded product GIDs (comma-separated)"
               defaultValue={data.spendPolicy.excludedProductIds.join(",")}
             />
-            <s-text-field
+            <Field
               name="excludedCollectionIds"
               label="Excluded collection GIDs (comma-separated)"
               defaultValue={data.spendPolicy.excludedCollectionIds.join(",")}
             />
-            <s-text-field
+            <Field
               name="includedSalesChannels"
               label="Included sales channels (empty = all)"
               defaultValue={data.spendPolicy.includedSalesChannels.join(",")}
             />
-            <label>
+            <label className="vpm-check">
               <input type="checkbox" name="emailEnabled" defaultChecked={Boolean(prefs.emailEnabled)} />{" "}
               Email notification preference (no messaging integration auto-enabled)
             </label>
-            <s-button type="submit">Save settings</s-button>
-          </s-stack>
-        </Form>
+            <SubmitButton>Save settings</SubmitButton>
+          </Form>
         </div>
       </s-section>
     </s-page>

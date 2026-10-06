@@ -5,7 +5,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
 import { formatMoney, bpsToPercentString } from "../lib/money";
-import { EmptyState, PageIntro, buildQuery } from "../components/admin/ui";
+import { EmptyState, PageIntro, buildQuery, AdminLink, Field, SubmitButton } from "../components/admin/ui";
 import { pricingStatusLabel } from "../lib/pricing-status";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -87,10 +87,10 @@ export default function CustomersPage() {
 
       <s-section heading="Search & filters">
         <form method="get" className="vpm-filter-bar">
-            <s-text-field name="q" label="Search" defaultValue={data.filters.q} />
-            <label>
-              Tier
-              <select name="tier" defaultValue={data.filters.tierId}>
+          <Field label="Search" name="q" defaultValue={data.filters.q} />
+          <label>
+            Tier
+            <select name="tier" defaultValue={data.filters.tierId}>
               <option value="">All tiers</option>
               {data.tiers.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -98,33 +98,33 @@ export default function CustomersPage() {
                 </option>
               ))}
             </select>
-            </label>
-            <label>
-              Approval
-              <select name="approval" defaultValue={data.filters.approval}>
+          </label>
+          <label>
+            Approval
+            <select name="approval" defaultValue={data.filters.approval}>
               <option value="">Any approval</option>
               <option value="approved">Approved</option>
               <option value="pending">Not approved</option>
             </select>
-            </label>
-            <label>
-              Override
-              <select name="override" defaultValue={data.filters.override}>
+          </label>
+          <label>
+            Override
+            <select name="override" defaultValue={data.filters.override}>
               <option value="">Any override</option>
               <option value="yes">Has override</option>
             </select>
-            </label>
-            <label>
-              Pricing sync
-              <select name="sync" defaultValue={data.filters.sync}>
+          </label>
+          <label>
+            Pricing sync
+            <select name="sync" defaultValue={data.filters.sync}>
               <option value="">Any pricing sync</option>
               <option value="NOT_CONFIGURED">Not configured</option>
               <option value="SYNCED">Synced</option>
               <option value="FAILED">Failed</option>
               <option value="UNSUPPORTED">Unsupported</option>
             </select>
-            </label>
-            <s-button type="submit">Apply filters</s-button>
+          </label>
+          <SubmitButton>Apply filters</SubmitButton>
         </form>
       </s-section>
 
@@ -134,74 +134,80 @@ export default function CustomersPage() {
             title="No matching customers"
             body="Start a historical import from Automation, or wait for order webhooks after install."
           >
-            <s-button href="/app/automation">Open automation</s-button>
+            <AdminLink to="/app/automation" className="vpm-btn">
+              Open automation
+            </AdminLink>
           </EmptyState>
         ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Customer</s-table-header>
-              <s-table-header>Qualifying spend</s-table-header>
-              <s-table-header>Effective tier</s-table-header>
-              <s-table-header>Discount</s-table-header>
-              <s-table-header>Approval</s-table-header>
-              <s-table-header>Pricing sync</s-table-header>
-              <s-table-header>History</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {data.customers.map((c) => (
-                <s-table-row key={c.id}>
-                  <s-table-cell>
-                    <s-link href={`/app/customers/${c.id}`}>{c.name}</s-link>
-                    {c.override ? <span className="vpm-tag">Override</span> : null}
-                  </s-table-cell>
-                  <s-table-cell>{c.spend}</s-table-cell>
-                  <s-table-cell>{c.tier}</s-table-cell>
-                  <s-table-cell>{c.discount}</s-table-cell>
-                  <s-table-cell>
-                    <s-badge tone={c.approved ? "success" : "warning"}>
-                      {c.approved ? "Approved" : "Pending"}
-                    </s-badge>
-                  </s-table-cell>
-                  <s-table-cell>{pricingStatusLabel(c.pricingSyncStatus)}</s-table-cell>
-                  <s-table-cell>{c.historyStatus}</s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
+          <div className="vpm-panel" style={{ padding: 0, overflow: "auto" }}>
+            <table className="vpm-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Qualifying spend</th>
+                  <th>Effective tier</th>
+                  <th>Discount</th>
+                  <th>Approval</th>
+                  <th>Pricing sync</th>
+                  <th>History</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.customers.map((c) => (
+                  <tr key={c.id}>
+                    <td>
+                      <AdminLink to={`/app/customers/${c.id}`}>{c.name}</AdminLink>
+                      {c.override ? <span className="vpm-tag">Override</span> : null}
+                    </td>
+                    <td>{c.spend}</td>
+                    <td>{c.tier}</td>
+                    <td>{c.discount}</td>
+                    <td>
+                      <s-badge tone={c.approved ? "success" : "warning"}>
+                        {c.approved ? "Approved" : "Pending"}
+                      </s-badge>
+                    </td>
+                    <td>{pricingStatusLabel(c.pricingSyncStatus)}</td>
+                    <td>{c.historyStatus}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-        <s-paragraph>
-          Page {data.page} of {data.pages}
-          <span className="vpm-pagination">
-            {data.page > 1 ? (
-              <s-link
-                href={buildQuery({
-                  q: data.filters.q,
-                  tier: data.filters.tierId,
-                  approval: data.filters.approval,
-                  override: data.filters.override,
-                  sync: data.filters.sync,
-                  page: data.page - 1,
-                })}
-              >
-                Previous
-              </s-link>
-            ) : null}
-            {data.page < data.pages ? (
-              <s-link
-                href={buildQuery({
-                  q: data.filters.q,
-                  tier: data.filters.tierId,
-                  approval: data.filters.approval,
-                  override: data.filters.override,
-                  sync: data.filters.sync,
-                  page: data.page + 1,
-                })}
-              >
-                Next
-              </s-link>
-            ) : null}
+        <div className="vpm-pagination">
+          <span>
+            Page {data.page} of {data.pages}
           </span>
-        </s-paragraph>
+          {data.page > 1 ? (
+            <AdminLink
+              to={buildQuery({
+                q: data.filters.q,
+                tier: data.filters.tierId,
+                approval: data.filters.approval,
+                override: data.filters.override,
+                sync: data.filters.sync,
+                page: data.page - 1,
+              })}
+            >
+              Previous
+            </AdminLink>
+          ) : null}
+          {data.page < data.pages ? (
+            <AdminLink
+              to={buildQuery({
+                q: data.filters.q,
+                tier: data.filters.tierId,
+                approval: data.filters.approval,
+                override: data.filters.override,
+                sync: data.filters.sync,
+                page: data.page + 1,
+              })}
+            >
+              Next
+            </AdminLink>
+          ) : null}
+        </div>
       </s-section>
     </s-page>
   );
