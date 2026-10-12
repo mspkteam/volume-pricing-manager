@@ -74,6 +74,13 @@ export function useEmbeddedHref(path: string): string {
   if (path.startsWith("http") || path.startsWith("//") || path.startsWith("#")) {
     return path;
   }
+  // Query-only links ("?page=2") must keep the current pathname.
+  if (path.startsWith("?")) {
+    const params = new URLSearchParams(location.search);
+    new URLSearchParams(path.slice(1)).forEach((v, k) => params.set(k, v));
+    const search = params.toString();
+    return search ? `${location.pathname}?${search}` : location.pathname;
+  }
   const qIndex = path.indexOf("?");
   const pathname = qIndex >= 0 ? path.slice(0, qIndex) : path;
   const extra = qIndex >= 0 ? path.slice(qIndex + 1) : "";

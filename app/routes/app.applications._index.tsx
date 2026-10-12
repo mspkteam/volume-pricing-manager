@@ -68,9 +68,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       formId: s.form.id,
       formTitle: s.form.title,
       formHandle: s.form.handle,
+      shopifyCustomerId: s.shopifyCustomerId,
     })),
   };
 };
+
+function filterHref(args: { q: string; status: string; page: number }) {
+  const params = new URLSearchParams();
+  if (args.q) params.set("q", args.q);
+  if (args.status) params.set("status", args.status);
+  if (args.page > 1) params.set("page", String(args.page));
+  const qs = params.toString();
+  return qs ? `/app/applications?${qs}` : "/app/applications";
+}
 
 export default function ApplicationsInbox() {
   const data = useLoaderData<typeof loader>();
@@ -78,8 +88,8 @@ export default function ApplicationsInbox() {
   return (
     <s-page heading="Applications">
       <PageIntro>
-        Review buyer applications here. Approve only when the applicant submitted while logged in —
-        that unlocks wholesale tags on the storefront.
+        Open an applicant to update status (Approve / Needs info / Reject). Approving a logged-in
+        customer assigns tier role tags so product discounts unlock on the storefront.
       </PageIntro>
 
       <s-section heading="Filter">
@@ -117,24 +127,31 @@ export default function ApplicationsInbox() {
                   <th>Company</th>
                   <th>Status</th>
                   <th>Submitted</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {data.submissions.map((s) => (
                   <tr key={s.id}>
                     <td>
-                      <AdminLink to={`/app/forms/${s.formId}/submissions/${s.id}`}>
+                      <AdminLink to={`/app/applications/${s.id}`}>
                         {s.applicantName || s.applicantEmail || s.id}
                       </AdminLink>
+                      {!s.shopifyCustomerId ? (
+                        <div className="vpm-meta-row">Guest (must log in to approve)</div>
+                      ) : null}
                     </td>
-                    <td>
-                      <AdminLink to={`/app/forms/${s.formId}`}>{s.formTitle}</AdminLink>
-                    </td>
+                    <td>{s.formTitle}</td>
                     <td>{s.companyName || "—"}</td>
                     <td>
                       <ApplicationStatusBadge status={s.status} />
                     </td>
                     <td>{formatDateTime(s.submittedAt)}</td>
+                    <td>
+                      <AdminLink to={`/app/applications/${s.id}`} className="vpm-btn vpm-btn--secondary">
+                        Review
+                      </AdminLink>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -146,7 +163,7 @@ export default function ApplicationsInbox() {
           <div className="vpm-pagination">
             {data.page > 1 ? (
               <AdminLink
-                to={`?q=${encodeURIComponent(data.q)}&status=${encodeURIComponent(data.status)}&page=${data.page - 1}`}
+                to={filterHref({ q: data.q, status: data.status, page: data.page - 1 })}
               >
                 Previous
               </AdminLink>
@@ -156,7 +173,7 @@ export default function ApplicationsInbox() {
             </span>
             {data.page < data.totalPages ? (
               <AdminLink
-                to={`?q=${encodeURIComponent(data.q)}&status=${encodeURIComponent(data.status)}&page=${data.page + 1}`}
+                to={filterHref({ q: data.q, status: data.status, page: data.page + 1 })}
               >
                 Next
               </AdminLink>

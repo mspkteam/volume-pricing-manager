@@ -1,5 +1,6 @@
 {% comment %}
-  Theme app block — wholesale price badge from VPM-managed customer tags.
+  Theme app block — dynamic wholesale / volume price from VPM-managed customer tags.
+  Approved customers with vpm-pct-N (or role tags) see discounted product price.
 {% endcomment %}
 
 {% liquid
@@ -10,27 +11,41 @@
   if customer
     for tag in customer.tags
       assign tag_down = tag | downcase | strip
-      if tag_down == 'vpm-approved' or tag_down == 'wholesale' or tag_down == 'distributor' or tag_down == 'retailer'
+      if tag_down == 'vpm-approved' or tag_down == 'vpm'
         assign unlocked = true
       endif
       if tag_down contains 'vpm-pct-'
         assign unlocked = true
         assign vpm_discount = tag_down | remove: 'vpm-pct-' | plus: 0
       endif
+      if tag_down contains 'vpm-tier-'
+        assign unlocked = true
+      endif
       if tag_down == 'wholesale' and vpm_discount == 0
+        assign unlocked = true
         assign vpm_discount = 30
-        assign vpm_label = 'Wholesale Pricing Active'
+        assign vpm_label = 'Wholesale Pricing'
       elsif tag_down == 'distributor' and vpm_discount == 0
+        assign unlocked = true
         assign vpm_discount = 20
-        assign vpm_label = 'Distributor Pricing Active'
+        assign vpm_label = 'Distributor Pricing'
       elsif tag_down == 'retailer' and vpm_discount == 0
+        assign unlocked = true
         assign vpm_discount = 10
-        assign vpm_label = 'Retailer Pricing Active'
+        assign vpm_label = 'Retailer Pricing'
       endif
     endfor
     if vpm_discount > 0 and vpm_label == blank
-      assign vpm_label = 'Volume Pricing Active'
+      assign vpm_label = 'Volume Pricing'
     endif
+  endif
+
+  assign show_product_price = false
+  assign vpm_sale_cents = 0
+  if product and vpm_discount > 0
+    assign show_product_price = true
+    assign keep_pct = 100 | minus: vpm_discount
+    assign vpm_sale_cents = product.price | times: keep_pct | divided_by: 100
   endif
 %}
 
@@ -43,15 +58,41 @@
     margin-block: {{ block.settings.spacing }}px;
   "
 >
-  {% if vpm_discount > 0 %}
+  {% if show_product_price %}
+    <div class="vpm-wholesale-price__product">
+      <p class="vpm-wholesale-price__badge" style="color: var(--vpm-accent); font-weight: 600; margin: 0 0 0.35rem;">
+        {{ vpm_label }} · {{ vpm_discount }}% off
+      </p>
+      <p class="vpm-wholesale-price__amounts" style="margin: 0; color: var(--vpm-text);">
+        <span
+          class="vpm-wholesale-price__compare"
+          style="text-decoration: line-through; opacity: 0.65; margin-right: 0.5rem;"
+        >
+          {{ product.price | money }}
+        </span>
+        <span class="vpm-wholesale-price__sale" style="color: var(--vpm-accent); font-weight: 700; font-size: 1.25em;">
+          {{ vpm_sale_cents | money }}
+        </span>
+      </p>
+      {% if block.settings.show_hint %}
+        <p class="vpm-wholesale-price__hint" style="color: var(--vpm-text); font-size: 0.875rem; margin: 0.35rem 0 0;">
+          Your tier price for this product.
+        </p>
+      {% endif %}
+    </div>
+  {% elsif vpm_discount > 0 %}
     <p class="vpm-wholesale-price__badge" style="color: var(--vpm-accent); font-weight: 600;">
       {{ vpm_label }} ({{ vpm_discount }}% Off Applied)
     </p>
     {% if block.settings.show_hint %}
       <p class="vpm-wholesale-price__hint" style="color: var(--vpm-text); font-size: 0.875rem;">
-        Your automated volume pricing tier is active.
+        Your volume pricing tier is active at checkout.
       </p>
     {% endif %}
+  {% elsif customer and unlocked %}
+    <p class="vpm-wholesale-price__locked" style="color: var(--vpm-text);">
+      {{ block.settings.approved_no_tier_message }}
+    </p>
   {% elsif customer %}
     <p class="vpm-wholesale-price__locked" style="color: var(--vpm-text);">
       {{ block.settings.pending_message }}
@@ -59,7 +100,10 @@
   {% else %}
     <p class="vpm-wholesale-price__guest" style="color: var(--vpm-text);">
       <a href="{{ routes.account_login_url }}">Log in</a>
-      or <a href="{{ block.settings.apply_url }}">apply for wholesale</a> to see your pricing.
+      {% if block.settings.apply_url != blank %}
+        or <a href="{{ block.settings.apply_url }}">apply for wholesale</a>
+      {% endif %}
+      to see your pricing.
     </p>
   {% endif %}
 </div>
@@ -68,6 +112,7 @@
 {
   "name": "VPM wholesale price",
   "target": "section",
+  "templates": ["product", "index", "page", "collection", "cart"],
   "settings": [
     {
       "type": "color",
@@ -99,8 +144,14 @@
     {
       "type": "text",
       "id": "pending_message",
-      "label": "Logged-in without tier message",
+      "label": "Logged-in without approval",
       "default": "Your wholesale application is pending approval or has no active tier yet."
+    },
+    {
+      "type": "text",
+      "id": "approved_no_tier_message",
+      "label": "Approved but no % tier yet",
+      "default": "You're approved. Tier pricing will appear once a volume tier is assigned."
     },
     {
       "type": "url",

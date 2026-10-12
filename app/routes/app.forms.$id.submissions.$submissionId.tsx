@@ -6,8 +6,14 @@ import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
 import { getForm } from "../services/forms/form-service";
 import { reviewSubmission } from "../services/forms/review-service";
+import { syncCustomerWholesaleAccess } from "../services/wholesale/access-sync";
 import type { FormSchema } from "../services/forms/field-registry";
-import { ApplicationStatusBadge, FlashBanner, PageIntro } from "../components/admin/ui";
+import {
+  ApplicationStatusBadge,
+  EmbeddedSLink,
+  FlashBanner,
+  PageIntro,
+} from "../components/admin/ui";
 import { formatDateTime } from "../lib/format";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -89,7 +95,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(prisma, session.shop);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "") as
@@ -100,7 +106,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
   try {
     const projected = formData.get("projectedVolumeOverride") === "on";
-    await reviewSubmission(prisma, {
+    const result = await reviewSubmission(prisma, {
       shopId: shop.id,
       shopDomain: session.shop,
       submissionId: String(params.submissionId),
@@ -112,13 +118,28 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
         ? String(formData.get("startingTierId") || "") || null
         : null,
       projectedVolumeOverride: projected,
+      preferRequestedTier: true,
       overrideReason: String(formData.get("overrideReason") || "") || undefined,
       overrideExpiresAt: String(formData.get("overrideExpiresAt") || "") || null,
       markLicenseVerified: formData.get("markLicenseVerified") === "on",
       markResaleVerified: formData.get("markResaleVerified") === "on",
       markAgreementVerified: formData.get("markAgreementVerified") === "on",
     });
-    return { ok: true, message: `Submission marked ${intent}.` };
+
+    let tagMessage = "";
+    if (intent === "approve" && result.customerProfileId) {
+      const tags = await syncCustomerWholesaleAccess(prisma, admin, {
+        shopId: shop.id,
+        shopDomain: session.shop,
+        customerProfileId: result.customerProfileId,
+        actor: session.shop,
+      });
+      tagMessage = tags.ok
+        ? ` Tags: ${tags.message}`
+        : ` Tag sync warning: ${tags.message}`;
+    }
+
+    return { ok: true, message: `Submission marked ${intent}.${tagMessage}` };
   } catch (err) {
     return {
       ok: false,
@@ -142,9 +163,12 @@ export default function SubmissionDetailPage() {
 
   return (
     <s-page heading={s.applicantName || s.applicantEmail || "Submission"}>
-      <s-link slot="breadcrumb-actions" href={`/app/forms/${data.form.id}/submissions`}>
-        Submissions
-      </s-link>
+      <EmbeddedSLink slot="breadcrumb-actions" href="/app/applications">
+        Applications
+      </EmbeddedSLink>
+      <EmbeddedSLink slot="secondary-actions" href={`/app/forms/${data.form.id}/submissions`}>
+        Form submissions
+      </EmbeddedSLink>
 
       {actionData?.message ? (
         <FlashBanner message={actionData.message} ok={actionData.ok} />

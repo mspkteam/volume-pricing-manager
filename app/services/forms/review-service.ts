@@ -43,9 +43,11 @@ export async function reviewSubmission(
     actor: string;
     customerMessage?: string;
     internalNotes?: string;
-    /** Explicit audited starting-tier override (projected volume) */
+    /** Explicit audited starting-tier override (projected volume / role) */
     startingTierId?: string | null;
     projectedVolumeOverride?: boolean;
+    /** If starting tier empty, use submission.requestedTierId (form role select). */
+    preferRequestedTier?: boolean;
     overrideReason?: string;
     overrideExpiresAt?: string | null;
     markLicenseVerified?: boolean;
@@ -109,13 +111,23 @@ export async function reviewSubmission(
     return { submission: updated, pricingQueued: false };
   }
 
-  // Approval updates eligibility — does NOT auto-grant requested tier.
+  // Approval updates eligibility. Tier/role tags come from starting tier when provided
+  // (or the form's requested tier when preferRequestedTier is set).
   const shopifyCustomerId = submission.shopifyCustomerId;
   if (!shopifyCustomerId) {
     throw new Error(
       "This applicant is not logged in to a Shopify customer account. Ask them to submit while logged in, or link a customer before approving.",
     );
   }
+
+  let startingTierId =
+    (args.startingTierId && String(args.startingTierId).trim()) || null;
+  if (!startingTierId && args.preferRequestedTier && submission.requestedTierId) {
+    startingTierId = submission.requestedTierId;
+  }
+  const applyStartingTier = Boolean(
+    startingTierId && (args.projectedVolumeOverride || args.preferRequestedTier),
+  );
 
   let profile = await prisma.customerProfiles.findFirst({
     where: { shopId: args.shopId, shopifyCustomerId },
@@ -141,25 +153,25 @@ export async function reviewSubmission(
       licenseVerified: args.markLicenseVerified ?? profile.licenseVerified,
       resaleCertVerified: args.markResaleVerified ?? profile.resaleCertVerified,
       purchaseAgreementVerified: args.markAgreementVerified ?? profile.purchaseAgreementVerified,
-      projectedVolumeApproved: Boolean(args.projectedVolumeOverride),
+      projectedVolumeApproved: applyStartingTier || Boolean(args.projectedVolumeOverride),
       displayName: profile.displayName || submission.applicantName || profile.displayName,
       email: profile.email || submission.applicantEmail || profile.email,
       adminNotes: [profile.adminNotes, `Form approval ${submission.id}`, args.internalNotes]
         .filter(Boolean)
         .join("\n"),
-      ...(args.projectedVolumeOverride && args.startingTierId
+      ...(applyStartingTier && startingTierId
         ? {
-            overrideTierId: args.startingTierId,
+            overrideTierId: startingTierId,
             overrideReason:
               args.overrideReason ||
-              "Projected-volume starting tier from form approval (audited)",
+              "Starting tier / role from application approval (audited)",
             overrideExpiresAt: args.overrideExpiresAt
               ? new Date(args.overrideExpiresAt)
               : null,
             overrideSetAt: new Date(),
             overrideSetBy: args.actor,
             overridePausesAutomation: false,
-            effectiveTierId: args.startingTierId,
+            effectiveTierId: startingTierId,
           }
         : {}),
     },
@@ -183,11 +195,11 @@ export async function reviewSubmission(
     enqueuePricingSync: true,
   });
 
-  // If projected override was set, ensure pricing sync still queued
-  if (args.projectedVolumeOverride && args.startingTierId) {
+  // Ensure pricing sync is queued for the assigned role tier (worker or later cron)
+  if (applyStartingTier && startingTierId) {
     const shop = await prisma.shop.findUniqueOrThrow({ where: { id: args.shopId } });
     const tier = await prisma.pricingTier.findFirst({
-      where: { id: args.startingTierId, shopId: args.shopId },
+      where: { id: startingTierId, shopId: args.shopId },
     });
     await enqueueJob(prisma, {
       shopDomain: args.shopDomain,
@@ -195,15 +207,21 @@ export async function reviewSubmission(
       type: JOB_TYPES.SYNC_PRICING_CUSTOMER,
       payload: {
         customerProfileId: profile.id,
-        tierId: args.startingTierId,
+        tierId: startingTierId,
         discountBps: tier?.discountBps ?? 0,
+        tierName: tier?.name ?? null,
         assignmentVersion: result.customer.assignmentVersion,
         configVersion: shop.settingsVersion,
       },
-      idempotencyKey: `form-approve-sync:${submission.id}:${args.startingTierId}`,
+      idempotencyKey: `form-approve-sync:${submission.id}:${startingTierId}`,
     });
   }
 
   void schema;
-  return { submission: updated, pricingQueued: true, customerProfileId: profile.id };
+  return {
+    submission: updated,
+    pricingQueued: true,
+    customerProfileId: profile.id,
+    startingTierId: applyStartingTier ? startingTierId : null,
+  };
 }
