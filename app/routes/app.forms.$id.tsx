@@ -540,16 +540,18 @@ export default function FormBuilderPage() {
                 </label>
                 {!selected.presentational ? (
                   <label>
-                    <span>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(selected.required)}
-                        onChange={(e) =>
-                          patchField(selected.id, { required: e.target.checked })
-                        }
-                      />{" "}
-                      Required
-                    </span>
+                    Field requirement
+                    <select
+                      value={selected.required ? "mandatory" : "simple"}
+                      onChange={(e) =>
+                        patchField(selected.id, {
+                          required: e.target.value === "mandatory",
+                        })
+                      }
+                    >
+                      <option value="simple">Simple (optional)</option>
+                      <option value="mandatory">Mandatory (required)</option>
+                    </select>
                   </label>
                 ) : null}
 

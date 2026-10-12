@@ -116,7 +116,8 @@ export function contractorWholesaleTemplate(): FormSchema {
       id: docs,
       type: "file_upload",
       label: "Business License / Reseller Certificate / Contractor License",
-      required: true,
+      // Mandatory when applicant is contractor/reseller; otherwise optional (simple).
+      required: false,
       width: "full",
       requiredWhen: {
         logic: "OR",

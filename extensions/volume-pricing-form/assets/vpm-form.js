@@ -52,11 +52,30 @@
   }
 
   function evaluateGroup(group, answers) {
+    // Empty group = always true (used for visibility defaults).
     if (!group || !group.clauses || !group.clauses.length) return true;
     if (group.logic === "OR") {
       return group.clauses.some(function (c) { return clauseMatches(c, answers); });
     }
     return group.clauses.every(function (c) { return clauseMatches(c, answers); });
+  }
+
+  /** Match server isFieldRequired — do NOT treat empty requiredWhen as required. */
+  function isFieldRequired(field, answers) {
+    if (field.presentational) return false;
+    var visible = evaluateGroup(field.visibility, answers);
+    if (!visible) return false;
+    if (field.required) return true;
+    if (field.requiredWhen && field.requiredWhen.clauses && field.requiredWhen.clauses.length) {
+      return evaluateGroup(field.requiredWhen, answers);
+    }
+    return false;
+  }
+
+  function fileFieldHasValue(wrap, value) {
+    if (!isEmpty(value)) return true;
+    var fileInput = wrap.querySelector('input[type="file"]');
+    return !!(fileInput && fileInput.files && fileInput.files.length > 0);
   }
 
   function splitSteps(fields) {
@@ -252,9 +271,16 @@
       }
       var file = wrap.querySelector('input[type="file"][data-upload]');
       if (file) {
-        answers[id] = file.getAttribute("data-upload-ids")
-          ? JSON.parse(file.getAttribute("data-upload-ids"))
-          : [];
+        if (file.getAttribute("data-upload-ids")) {
+          answers[id] = JSON.parse(file.getAttribute("data-upload-ids"));
+        } else if (file.files && file.files.length) {
+          // Selected locally; upload ids are filled on submit before POST.
+          answers[id] = Array.prototype.map.call(file.files, function (f) {
+            return { name: f.name, size: f.size, pending: true };
+          });
+        } else {
+          answers[id] = [];
+        }
         return;
       }
       var cb = wrap.querySelector('input[type="checkbox"]');
@@ -289,11 +315,16 @@
       setFieldError(wrap, "");
       var visible = evaluateGroup(field.visibility, answers);
       if (!visible) return;
-      var required = field.required || evaluateGroup(field.requiredWhen, answers);
+      var required = isFieldRequired(field, answers);
       var value = answers[field.id];
       if (required) {
         if (field.type === "checkbox" || field.type === "consent") {
-          if (!(value === true || value === "true")) {
+          if (!(value === true || value === "true" || value === "on")) {
+            setFieldError(wrap, field.label + " is required");
+            ok = false;
+          }
+        } else if (field.type === "file_upload") {
+          if (!fileFieldHasValue(wrap, value)) {
             setFieldError(wrap, field.label + " is required");
             ok = false;
           }
@@ -318,8 +349,7 @@
       wrap.classList.toggle("is-hidden", !visible);
       var req = wrap.querySelector(".vpm-field__req");
       if (req) {
-        var required = field.required || evaluateGroup(field.requiredWhen, answers);
-        req.hidden = !required;
+        req.hidden = !isFieldRequired(field, answers);
       }
     });
   }
