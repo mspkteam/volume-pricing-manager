@@ -1,0 +1,85 @@
+{% comment %}
+  Compact tier price for product cards (collection / search / featured).
+  Uses closest.product so it works inside Horizon product-card @app slots.
+{% endcomment %}
+{% liquid
+  assign vpm_product = closest.product
+  if vpm_product == blank
+    assign vpm_product = product
+  endif
+  if vpm_product == blank and block.settings.product != blank
+    assign vpm_product = block.settings.product
+  endif
+%}
+
+<div
+  class="vpm-tier-price-block vpm-tier-price-block--card"
+  style="
+    --vpm-text: {{ block.settings.text_color }};
+    --vpm-accent: {{ block.settings.accent_color }};
+    margin-block: {{ block.settings.spacing }}px;
+  "
+  {{ block.shopify_attributes }}
+>
+  {% render 'vpm-tier-price',
+    vpm_product: vpm_product,
+    compact: true,
+    show_badge: block.settings.show_badge,
+    show_hint: false,
+    pending_message: block.settings.pending_message
+  %}
+</div>
+
+{% schema %}
+{
+  "name": "VPM card price",
+  "target": "section",
+  "stylesheet": "vpm-price.css",
+  "templates": ["index", "collection", "search", "product", "cart", "page"],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Add this inside a Product card (Apps → VPM card price). Shows strike-through retail + your tier % off."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product (optional fallback)"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_badge",
+      "label": "Show tier badge",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Sale / accent color",
+      "default": "#0b5fff"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "label": "Spacing",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "text",
+      "id": "pending_message",
+      "label": "Message when logged in without tier",
+      "default": "Wholesale pricing pending approval."
+    }
+  ]
+}
+{% endschema %}

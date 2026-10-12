@@ -1,0 +1,59 @@
+{% comment %}
+  Shared VPM tier price markup for app blocks.
+  Expects: vpm_product, compact (bool), show_badge, show_hint, colors via CSS vars on wrapper.
+{% endcomment %}
+{% liquid
+  assign vpm_discount_pct = 0
+  assign vpm_tier_label = blank
+
+  if customer
+    for tag in customer.tags
+      assign tag_down = tag | downcase | strip
+      if tag_down contains 'vpm-pct-'
+        assign vpm_discount_pct = tag_down | remove: 'vpm-pct-' | plus: 0
+      endif
+      if tag_down == 'wholesale' and vpm_discount_pct == 0
+        assign vpm_discount_pct = 30
+        assign vpm_tier_label = 'Wholesale'
+      elsif tag_down == 'distributor' and vpm_discount_pct == 0
+        assign vpm_discount_pct = 20
+        assign vpm_tier_label = 'Distributor'
+      elsif tag_down == 'retailer' and vpm_discount_pct == 0
+        assign vpm_discount_pct = 10
+        assign vpm_tier_label = 'Retailer'
+      endif
+    endfor
+    if vpm_discount_pct > 0 and vpm_tier_label == blank
+      assign vpm_tier_label = 'Volume Pricing'
+    endif
+  endif
+
+  assign vpm_variant = vpm_product.selected_or_first_available_variant
+  assign retail_cents = vpm_variant.price | default: vpm_product.price
+  assign sale_cents = retail_cents
+  if vpm_discount_pct > 0 and retail_cents > 0
+    assign vpm_keep = 100 | minus: vpm_discount_pct
+    assign sale_cents = retail_cents | times: vpm_keep | divided_by: 100
+  endif
+%}
+
+{% if vpm_discount_pct > 0 and vpm_product != blank %}
+  <div class="vpm-tier-price{% if compact %} vpm-tier-price--compact{% endif %}">
+    {% if show_badge %}
+      <p class="vpm-tier-price__badge">{{ vpm_tier_label }} · {{ vpm_discount_pct }}% off</p>
+    {% endif %}
+    <p class="vpm-tier-price__amounts">
+      <span class="vpm-tier-price__compare">{{ retail_cents | money }}</span>
+      <span class="vpm-tier-price__sale">{{ sale_cents | money }}</span>
+    </p>
+    {% if show_hint and compact == false %}
+      <p class="vpm-tier-price__hint">Your tier price for this product.</p>
+    {% endif %}
+  </div>
+{% elsif customer and compact == false %}
+  <p class="vpm-tier-price__pending">{{ pending_message }}</p>
+{% elsif customer == blank and compact == false %}
+  <p class="vpm-tier-price__guest">
+    <a href="{{ routes.account_login_url }}">Log in</a> to see your volume pricing.
+  </p>
+{% endif %}

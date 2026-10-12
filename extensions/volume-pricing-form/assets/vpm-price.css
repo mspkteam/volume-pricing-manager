@@ -1,0 +1,55 @@
+.vpm-tier-price {
+  --vpm-text: #333333;
+  --vpm-accent: #0b5fff;
+  color: var(--vpm-text);
+  margin: 0.35rem 0;
+  line-height: 1.35;
+}
+
+.vpm-tier-price--compact {
+  margin: 0.2rem 0 0;
+}
+
+.vpm-tier-price__badge {
+  margin: 0 0 0.25rem;
+  color: var(--vpm-accent);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.vpm-tier-price--compact .vpm-tier-price__badge {
+  font-size: 0.75rem;
+  margin-bottom: 0.15rem;
+}
+
+.vpm-tier-price__amounts {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.55rem;
+}
+
+.vpm-tier-price__compare {
+  text-decoration: line-through;
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+
+.vpm-tier-price__sale {
+  color: var(--vpm-accent);
+  font-weight: 700;
+  font-size: 1.15em;
+}
+
+.vpm-tier-price--compact .vpm-tier-price__sale {
+  font-size: 1.05em;
+}
+
+.vpm-tier-price__hint,
+.vpm-tier-price__pending,
+.vpm-tier-price__guest {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}

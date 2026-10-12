@@ -1,0 +1,84 @@
+{% comment %}
+  Full tier price for product (PDP) and featured product sections.
+{% endcomment %}
+{% liquid
+  assign vpm_product = product
+  if vpm_product == blank
+    assign vpm_product = closest.product
+  endif
+  if vpm_product == blank and block.settings.product != blank
+    assign vpm_product = block.settings.product
+  endif
+%}
+
+<div
+  class="vpm-tier-price-block vpm-tier-price-block--page"
+  style="
+    --vpm-text: {{ block.settings.text_color }};
+    --vpm-accent: {{ block.settings.accent_color }};
+    margin-block: {{ block.settings.spacing }}px;
+  "
+  {{ block.shopify_attributes }}
+>
+  {% render 'vpm-tier-price',
+    vpm_product: vpm_product,
+    compact: false,
+    show_badge: true,
+    show_hint: block.settings.show_hint,
+    pending_message: block.settings.pending_message
+  %}
+</div>
+
+{% schema %}
+{
+  "name": "VPM product price",
+  "target": "section",
+  "stylesheet": "vpm-price.css",
+  "templates": ["product", "index", "page", "collection"],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Place on the product page near the regular price. Approved customers see retail struck through and their tier price."
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product (optional fallback)"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hint",
+      "label": "Show helper text",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Sale / accent color",
+      "default": "#0b5fff"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "label": "Spacing",
+      "min": 0,
+      "max": 48,
+      "step": 4,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "text",
+      "id": "pending_message",
+      "label": "Logged-in without tier message",
+      "default": "Your wholesale application is pending approval or has no active tier yet."
+    }
+  ]
+}
+{% endschema %}
