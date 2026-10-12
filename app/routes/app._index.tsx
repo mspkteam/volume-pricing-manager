@@ -156,9 +156,8 @@ export default function Dashboard() {
       data.shop.pricingCompatibility === "SETUP_REQUIRED" ||
       data.shop.pricingCompatibility === "UNKNOWN" ? (
         <s-banner tone="info" heading="Storefront pricing is active">
-          Approved buyers already get wholesale prices from tags on the storefront. Checkout Function
-          discounts are optional — open Settings to verify &amp; activate if you want them at checkout
-          too.
+          Approved buyers already see wholesale prices from tags. To apply the same % at checkout,
+          open Settings → Create checkout discounts from tiers (automatic discounts, no coupon codes).
         </s-banner>
       ) : null}
 

@@ -68,7 +68,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(prisma, session.shop);
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -93,18 +93,39 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     displayOrder: Number(form.get("displayOrder") || 0),
   });
 
+  const maybeResyncCheckout = async () => {
+    const external = (shop.pricingExternalIds as Record<string, unknown>) || {};
+    if (external.checkoutMode !== "automatic_basic" && !external.checkoutWritesEnabled) {
+      return;
+    }
+    try {
+      const { syncTierToAutomaticDiscounts } = await import(
+        "../services/pricing/automatic-basic-sync"
+      );
+      await syncTierToAutomaticDiscounts(prisma, admin, {
+        shopId: shop.id,
+        shopDomain: session.shop,
+        actor: session.shop,
+      });
+    } catch {
+      // Tier save should still succeed if discount re-sync fails
+    }
+  };
+
   try {
     if (intent === "save" && id === "new") {
       const fields = readTierFields();
       if (!fields.name) return { ok: false, message: "Tier name is required." };
       const tier = await createTier(prisma, shop.id, fields, session.shop);
+      await maybeResyncCheckout();
       return appRedirect(request, `/app/tiers/${tier.id}`);
     }
     if (intent === "save") {
       const fields = readTierFields();
       if (!fields.name) return { ok: false, message: "Tier name is required." };
       await updateTier(prisma, shop.id, id, fields, session.shop);
-      return { ok: true, message: "Tier saved." };
+      await maybeResyncCheckout();
+      return { ok: true, message: "Tier saved. Checkout discounts re-synced if enabled." };
     }
     if (intent === "archive") {
       await archiveTier(prisma, shop.id, id, session.shop, {
