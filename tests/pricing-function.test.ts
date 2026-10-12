@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { run } from "../extensions/volume-tier-discount/src/run.js";
+import { run } from "../extensions/volume-tier-discount/src/index.js";
 
 describe("discount function", () => {
   it("applies authorized percentage from config map by stable tier id", () => {

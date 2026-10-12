@@ -11,12 +11,12 @@
   window.VPM.proxyFormsBase = {{ '/apps/volume-pricing/forms' | json }};
   window.VPM.embedEnabled = true;
 </script>
+<script src="/apps/volume-pricing/widget/vpm-form.js" defer></script>
 
 {% schema %}
 {
   "name": "Volume Pricing",
   "target": "body",
-  "javascript": "vpm-form.js",
   "stylesheet": "vpm-form.css",
   "settings": [
     {
