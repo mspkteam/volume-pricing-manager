@@ -460,6 +460,20 @@ a.vpm-btn:hover {
   resize: vertical;
 }
 
+.vpm-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.vpm-steps code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
 .vpm-actions {
   display: flex;
   flex-wrap: wrap;

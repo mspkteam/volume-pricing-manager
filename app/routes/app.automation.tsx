@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Form, useActionData, useLoaderData } from "react-router";
+import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -10,8 +10,19 @@ import {
 } from "../services/shop/shop-service";
 import { enqueueJob, JOB_TYPES } from "../services/jobs/queue";
 import { writeAuditLog } from "../services/audit/audit-log";
+import { recalculateShopCustomers } from "../services/assignment/recalculate";
 import type { AutomationPolicy, SpendPolicy } from "../lib/policies";
-import { FlashBanner, PageIntro, StatCard, StatGrid } from "../components/admin/ui";
+import {
+  AdminLink,
+  Check,
+  Field,
+  FlashBanner,
+  PageIntro,
+  SelectField,
+  StatCard,
+  StatGrid,
+  SubmitButton,
+} from "../components/admin/ui";
 import { formatDateTime } from "../lib/format";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -19,11 +30,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = await ensureShop(prisma, session.shop);
   const spendPolicy = parseSpendPolicy(shop.spendPolicy);
   const automationPolicy = parseAutomationPolicy(shop.automationPolicy);
-  const jobs = await prisma.backgroundJobs.findMany({
-    where: { shopDomain: session.shop },
-    orderBy: { updatedAt: "desc" },
-    take: 20,
-  });
+  const [jobs, customerCount, tierCount, pendingReviews] = await Promise.all([
+    prisma.backgroundJobs.findMany({
+      where: { shopDomain: session.shop },
+      orderBy: { updatedAt: "desc" },
+      take: 15,
+    }),
+    prisma.customerProfiles.count({ where: { shopId: shop.id } }),
+    prisma.pricingTier.count({ where: { shopId: shop.id, isArchived: false, isActive: true } }),
+    prisma.customerProfiles.count({
+      where: { shopId: shop.id, pendingTierId: { not: null } },
+    }),
+  ]);
   const failed = jobs.filter((j) => j.status === "FAILED" || j.status === "DEAD");
 
   return {
@@ -36,21 +54,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     importProgress: shop.importProgress,
     historyAccessLimited: shop.historyAccessLimited,
     historyCoverageMonths: shop.historyCoverageMonths,
+    customerCount,
+    tierCount,
+    pendingReviews,
     jobs: jobs.map((j) => ({
       id: j.id,
       type: j.type,
       status: j.status,
       attempts: j.attempts,
       lastError: j.lastError,
-      runAfter: j.runAfter,
-      updatedAt: j.updatedAt,
+      updatedAt: j.updatedAt.toISOString(),
     })),
     failedCount: failed.length,
   };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(prisma, session.shop);
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -59,7 +79,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (intent === "save_policies") {
       const spendPolicy: SpendPolicy = {
         ...parseSpendPolicy(shop.spendPolicy),
-        rollingPeriodMonths: Number(form.get("rollingPeriodMonths") || 12),
+        rollingPeriodMonths: Math.min(
+          36,
+          Math.max(1, Number(form.get("rollingPeriodMonths") || 12)),
+        ),
         includeTax: form.get("includeTax") === "on",
         includeShipping: form.get("includeShipping") === "on",
         excludeGiftCards: form.get("excludeGiftCards") === "on",
@@ -74,11 +97,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         downgradeMode: String(
           form.get("downgradeMode") || "grace_period",
         ) as AutomationPolicy["downgradeMode"],
-        gracePeriodDays: Number(form.get("gracePeriodDays") || 30),
+        gracePeriodDays: Math.min(
+          365,
+          Math.max(0, Number(form.get("gracePeriodDays") || 30)),
+        ),
         reviewInterval: String(
           form.get("reviewInterval") || "quarterly",
         ) as AutomationPolicy["reviewInterval"],
-        reviewAnchorDay: Number(form.get("reviewAnchorDay") || 1),
+        reviewAnchorDay: Math.min(
+          28,
+          Math.max(1, Number(form.get("reviewAnchorDay") || 1)),
+        ),
       };
       await prisma.shop.update({
         where: { id: shop.id },
@@ -96,32 +125,86 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         entityId: shop.id,
         summary: "Updated spend and automation policies",
       });
-      return { ok: true, message: "Policies saved." };
+      return { ok: true, message: "Policies saved. New rules apply on the next recalculation." };
     }
+
     if (intent === "pause") {
       await prisma.shop.update({
         where: { id: shop.id },
         data: { automationPaused: true },
       });
-      return { ok: true, message: "Automation paused." };
+      await writeAuditLog(prisma, {
+        shopId: shop.id,
+        actor: session.shop,
+        action: "automation.pause",
+        entityType: "Shop",
+        entityId: shop.id,
+        summary: "Automation paused",
+      });
+      return {
+        ok: true,
+        message:
+          "Automation paused. Spend still recalculates for reporting, but effective tiers will not change automatically.",
+      };
     }
+
     if (intent === "resume") {
       await prisma.shop.update({
         where: { id: shop.id },
         data: { automationPaused: false },
       });
-      return { ok: true, message: "Automation resumed." };
-    }
-    if (intent === "run_recalc") {
-      await enqueueJob(prisma, {
-        shopDomain: session.shop,
+      await writeAuditLog(prisma, {
         shopId: shop.id,
-        type: JOB_TYPES.DAILY_RECALC,
-        payload: { manual: true },
-        idempotencyKey: `manual-recalc:${session.shop}:${Date.now()}`,
+        actor: session.shop,
+        action: "automation.resume",
+        entityType: "Shop",
+        entityId: shop.id,
+        summary: "Automation resumed",
       });
-      return { ok: true, message: "Shop recalculation job enqueued. Ensure the worker is running." };
+      return { ok: true, message: "Automation resumed. Run recalculation to apply pending changes." };
     }
+
+    if (intent === "run_recalc") {
+      // Run inline so production works even when a separate worker process is offline.
+      const result = await recalculateShopCustomers(prisma, shop.id, session.shop);
+
+      // Best-effort: refresh wholesale tags for profiles (storefront Path A).
+      let tagsSynced = 0;
+      try {
+        const { syncCustomerWholesaleAccess } = await import("../services/wholesale/access-sync");
+        const profiles = await prisma.customerProfiles.findMany({
+          where: { shopId: shop.id },
+          select: { id: true },
+          take: 200,
+        });
+        for (const p of profiles) {
+          const sync = await syncCustomerWholesaleAccess(prisma, admin, {
+            shopId: shop.id,
+            shopDomain: session.shop,
+            customerProfileId: p.id,
+            actor: session.shop,
+          });
+          if (sync.ok) tagsSynced += 1;
+        }
+      } catch {
+        // Tag sync is best-effort; assignment still succeeded.
+      }
+
+      await writeAuditLog(prisma, {
+        shopId: shop.id,
+        actor: session.shop,
+        action: "automation.recalc_manual",
+        entityType: "Shop",
+        entityId: shop.id,
+        summary: `Manual recalculation processed ${result.processed} customers`,
+      });
+
+      return {
+        ok: true,
+        message: `Recalculation complete: ${result.processed} customer${result.processed === 1 ? "" : "s"} updated. Wholesale tags refreshed for ${tagsSynced}.`,
+      };
+    }
+
     if (intent === "start_import") {
       await enqueueJob(prisma, {
         shopDomain: session.shop,
@@ -141,10 +224,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         where: { id: shop.id },
         data: { importStatus: "IN_PROGRESS" },
       });
+      // Also kick an inline seed path reminder — worker still needed for paginated Admin GraphQL import.
       return {
         ok: true,
         message:
-          "Import jobs enqueued. Worker must be running with Admin API access. Full 12-month history needs read_all_orders approval.",
+          "Import jobs queued. A background worker must process Shopify Admin pagination. After import finishes, use “Run recalculation now”.",
       };
     }
   } catch (err) {
@@ -156,6 +240,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function AutomationPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const busy = navigation.state !== "idle";
   const s = data.spendPolicy;
   const a = data.automationPolicy;
 
@@ -166,139 +252,224 @@ export default function AutomationPage() {
       ) : null}
 
       <PageIntro>
-        Control rolling spend rules, upgrade/downgrade behavior, and background jobs. The worker process
-        must be running for imports and scheduled recalculations.
+        Rolling spend → eligibility → tier assignment → storefront tags. Upgrades apply per policy;
+        downgrades can wait on a grace period.{" "}
+        <AdminLink to="/app/simulator">Test with the simulator</AdminLink> before changing live rules.
       </PageIntro>
-
-      <s-stack direction="inline" gap="base">
-        <s-button href="/app/simulator" variant="tertiary">
-          Open simulator
-        </s-button>
-        <s-button href="/app/activity" variant="tertiary">
-          Activity log
-        </s-button>
-      </s-stack>
 
       <StatGrid>
         <StatCard
           label="Automation"
           value={data.automationPaused ? "Paused" : "Running"}
+          hint={data.automationPaused ? "Effective tiers frozen" : "Policy-driven changes on"}
         />
-        <StatCard label="Failed jobs" value={data.failedCount} />
-        <StatCard label="Import" value={data.importStatus} />
+        <StatCard label="Customers" value={data.customerCount} hint={`${data.tierCount} active tiers`} />
         <StatCard
-          label="Next run"
-          value={formatDateTime(data.nextScheduledRunAt)}
-          hint={`Last: ${formatDateTime(data.lastRecalculationAt)}`}
+          label="Pending reviews"
+          value={data.pendingReviews}
+          hint="Deferred upgrades/downgrades"
+        />
+        <StatCard
+          label="Last recalculation"
+          value={formatDateTime(data.lastRecalculationAt)}
+          hint={`Next: ${formatDateTime(data.nextScheduledRunAt)}`}
         />
       </StatGrid>
 
-      <s-section heading="Status">
-        {data.historyAccessLimited ? (
-          <s-banner tone="warning">
-            Insufficient history — coverage {data.historyCoverageMonths ?? "unknown"} months. Downgrades
-            from incomplete data may be blocked.
-          </s-banner>
-        ) : null}
-        <s-stack direction="inline" gap="base">
-          <Form method="post">
-            <input type="hidden" name="intent" value={data.automationPaused ? "resume" : "pause"} />
-            <s-button type="submit">{data.automationPaused ? "Resume" : "Pause"}</s-button>
-          </Form>
-          <Form method="post">
-            <input type="hidden" name="intent" value="run_recalc" />
-            <s-button type="submit" variant="secondary">
-              Run recalculation now
-            </s-button>
-          </Form>
-          <Form method="post">
-            <input type="hidden" name="intent" value="start_import" />
-            <s-button type="submit" variant="tertiary">
-              Start historical import
-            </s-button>
-          </Form>
-        </s-stack>
+      <s-section heading="How automation works">
+        <div className="vpm-panel vpm-panel--subdued">
+          <ol className="vpm-steps" style={{ margin: 0, paddingLeft: "1.25rem", lineHeight: 1.6 }}>
+            <li>
+              Qualifying spend is calculated over a rolling {s.rollingPeriodMonths}-month window (shop
+              timezone).
+            </li>
+            <li>Each customer is matched to the highest tier that passes spend + eligibility.</li>
+            <li>
+              Upgrades: <strong>{a.upgradeMode.replace("_", " ")}</strong>. Downgrades:{" "}
+              <strong>{a.downgradeMode.replace("_", " ")}</strong>
+              {a.downgradeMode === "grace_period" ? ` (${a.gracePeriodDays} days)` : ""}.
+            </li>
+            <li>
+              After assignment, wholesale tags (<code>vpm-approved</code>, <code>vpm-pct-*</code>) refresh
+              so the theme shows the right prices.
+            </li>
+          </ol>
+        </div>
       </s-section>
 
-      <s-section heading="Policies">
-        <Form method="post">
-          <input type="hidden" name="intent" value="save_policies" />
-          <s-stack direction="block" gap="base">
-            <s-text-field
-              name="rollingPeriodMonths"
-              label="Rolling period (months)"
-              defaultValue={String(s.rollingPeriodMonths)}
-            />
-            <label>
-              <input type="checkbox" name="includeTax" defaultChecked={s.includeTax} /> Include tax
-            </label>
-            <label>
-              <input type="checkbox" name="includeShipping" defaultChecked={s.includeShipping} />{" "}
-              Include shipping
-            </label>
-            <label>
-              <input type="checkbox" name="excludeGiftCards" defaultChecked={s.excludeGiftCards} />{" "}
-              Exclude gift cards
-            </label>
-            <label>
-              <input type="checkbox" name="excludeCancelled" defaultChecked={s.excludeCancelled} />{" "}
-              Exclude cancelled
-            </label>
-            <label>
-              <input type="checkbox" name="excludeTestOrders" defaultChecked={s.excludeTestOrders} />{" "}
-              Exclude test orders
-            </label>
-            <label>
+      <s-section heading="Controls">
+        <div className="vpm-panel">
+          {data.historyAccessLimited ? (
+            <s-banner tone="warning" heading="Incomplete order history">
+              Coverage is about {data.historyCoverageMonths ?? "unknown"} months. Auto-downgrades from
+              incomplete data stay blocked while protection is on.
+            </s-banner>
+          ) : null}
+          {data.tierCount === 0 ? (
+            <s-banner tone="info" heading="No active tiers">
+              Create tiers before recalculation can assign pricing.{" "}
+              <AdminLink to="/app/tiers">Open tiers</AdminLink>
+            </s-banner>
+          ) : null}
+
+          <div className="vpm-actions" style={{ flexWrap: "wrap", gap: "0.75rem", marginTop: "0.75rem" }}>
+            <Form method="post">
               <input
-                type="checkbox"
+                type="hidden"
+                name="intent"
+                value={data.automationPaused ? "resume" : "pause"}
+              />
+              <SubmitButton disabled={busy}>
+                {data.automationPaused ? "Resume automation" : "Pause automation"}
+              </SubmitButton>
+            </Form>
+            <Form method="post">
+              <input type="hidden" name="intent" value="run_recalc" />
+              <SubmitButton disabled={busy || data.tierCount === 0}>
+                {busy && navigation.formData?.get("intent") === "run_recalc"
+                  ? "Recalculating…"
+                  : "Run recalculation now"}
+              </SubmitButton>
+            </Form>
+            <Form method="post">
+              <input type="hidden" name="intent" value="start_import" />
+              <SubmitButton disabled={busy}>Start historical import</SubmitButton>
+            </Form>
+            <AdminLink to="/app/simulator" className="vpm-btn vpm-btn--secondary">
+              Open simulator
+            </AdminLink>
+            <AdminLink to="/app/activity" className="vpm-btn vpm-btn--secondary">
+              Activity log
+            </AdminLink>
+          </div>
+          <p className="vpm-stat-hint" style={{ marginTop: "0.75rem" }}>
+            Import status: <strong>{data.importStatus}</strong>
+            {data.importProgress != null ? ` · progress ${data.importProgress}%` : ""}
+            {data.failedCount > 0 ? ` · ${data.failedCount} failed background job(s)` : ""}
+          </p>
+        </div>
+      </s-section>
+
+      <s-section heading="Spend rules">
+        <div className="vpm-panel">
+          <Form method="post" className="vpm-form-stack">
+            <input type="hidden" name="intent" value="save_policies" />
+            <Field
+              label="Rolling period (months)"
+              name="rollingPeriodMonths"
+              type="number"
+              min={1}
+              max={36}
+              defaultValue={s.rollingPeriodMonths}
+            />
+            <div className="vpm-check-grid">
+              <Check label="Include tax in qualifying spend" name="includeTax" defaultChecked={s.includeTax} />
+              <Check
+                label="Include shipping in qualifying spend"
+                name="includeShipping"
+                defaultChecked={s.includeShipping}
+              />
+              <Check
+                label="Exclude gift cards"
+                name="excludeGiftCards"
+                defaultChecked={s.excludeGiftCards}
+              />
+              <Check
+                label="Exclude cancelled orders"
+                name="excludeCancelled"
+                defaultChecked={s.excludeCancelled}
+              />
+              <Check
+                label="Exclude test orders"
+                name="excludeTestOrders"
+                defaultChecked={s.excludeTestOrders}
+              />
+              <Check
+                label="Block auto-downgrade when history is incomplete"
                 name="protectFromIncompleteHistoryDowngrade"
                 defaultChecked={s.protectFromIncompleteHistoryDowngrade}
-              />{" "}
-              Block auto-downgrade when history is incomplete
-            </label>
-            <select name="upgradeMode" defaultValue={a.upgradeMode}>
-              <option value="immediate">Upgrade: immediate</option>
-              <option value="next_review">Upgrade: next review</option>
-            </select>
-            <select name="downgradeMode" defaultValue={a.downgradeMode}>
-              <option value="immediate">Downgrade: immediate</option>
-              <option value="grace_period">Downgrade: grace period</option>
-              <option value="next_review">Downgrade: next review</option>
-            </select>
-            <s-text-field
-              name="gracePeriodDays"
+              />
+            </div>
+
+            <s-heading>Assignment timing</s-heading>
+            <SelectField label="Upgrade mode" name="upgradeMode" defaultValue={a.upgradeMode}>
+              <option value="immediate">Immediate — apply as soon as spend qualifies</option>
+              <option value="next_review">Next review — wait for review cycle</option>
+            </SelectField>
+            <SelectField label="Downgrade mode" name="downgradeMode" defaultValue={a.downgradeMode}>
+              <option value="immediate">Immediate</option>
+              <option value="grace_period">Grace period — keep current tier temporarily</option>
+              <option value="next_review">Next review</option>
+            </SelectField>
+            <Field
               label="Grace period (days)"
-              defaultValue={String(a.gracePeriodDays)}
+              name="gracePeriodDays"
+              type="number"
+              min={0}
+              max={365}
+              defaultValue={a.gracePeriodDays}
             />
-            <select name="reviewInterval" defaultValue={a.reviewInterval}>
-              <option value="none">Review: none</option>
+            <SelectField label="Review interval" name="reviewInterval" defaultValue={a.reviewInterval}>
+              <option value="none">None</option>
               <option value="quarterly">Quarterly</option>
               <option value="semi_annual">Semi-annual</option>
               <option value="annual">Annual</option>
-            </select>
-            <s-text-field
-              name="reviewAnchorDay"
+            </SelectField>
+            <Field
               label="Review anchor day (1–28)"
-              defaultValue={String(a.reviewAnchorDay)}
+              name="reviewAnchorDay"
+              type="number"
+              min={1}
+              max={28}
+              defaultValue={a.reviewAnchorDay}
             />
-            <s-button type="submit">Save policies</s-button>
-          </s-stack>
-        </Form>
+
+            <p className="vpm-stat-hint">
+              Product/collection exclusions for spend live in{" "}
+              <AdminLink to="/app/settings">Settings</AdminLink>.
+            </p>
+
+            <SubmitButton disabled={busy}>Save policies</SubmitButton>
+          </Form>
+        </div>
       </s-section>
 
-      <s-section heading="Recent jobs">
-        {data.jobs.length === 0 ? (
-          <s-paragraph>No jobs yet. Start the worker with `npm run worker`.</s-paragraph>
-        ) : (
-          <s-unordered-list>
-            {data.jobs.map((j) => (
-              <s-list-item key={j.id}>
-                {j.type} · {j.status} · attempts {j.attempts}
-                {j.lastError ? ` · ${j.lastError}` : ""}
-              </s-list-item>
-            ))}
-          </s-unordered-list>
-        )}
+      <s-section heading="Recent background jobs">
+        <div className="vpm-panel" style={{ padding: 0, overflow: "auto" }}>
+          {data.jobs.length === 0 ? (
+            <div style={{ padding: "1rem" }}>
+              <s-paragraph>
+                No queued jobs yet. Recalculation above runs immediately in this request. Import still
+                uses background jobs when a worker is available.
+              </s-paragraph>
+            </div>
+          ) : (
+            <table className="vpm-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Attempts</th>
+                  <th>Updated</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.jobs.map((j) => (
+                  <tr key={j.id}>
+                    <td>
+                      <code>{j.type}</code>
+                    </td>
+                    <td>{j.status}</td>
+                    <td>{j.attempts}</td>
+                    <td>{formatDateTime(j.updatedAt)}</td>
+                    <td>{j.lastError || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </s-section>
     </s-page>
   );
