@@ -1,18 +1,24 @@
 {% comment %}
-  Volume Pricing Form — loads published schema via app proxy.
-  Merchants paste the form handle (Theme Editor cannot list forms dynamically).
+  Volume Pricing Form — app block widget.
+  Merchant pastes Form ID (or handle) from the app → Forms → Embed.
 {% endcomment %}
 
-{% assign handle = block.settings.form_handle | strip %}
-{% assign scope_id = block.id | replace: '/', '_' %}
+{% liquid
+  assign form_key = block.settings.form_id | strip
+  if form_key == blank
+    assign form_key = block.settings.form_handle | strip
+  endif
+  assign scope_id = block.id | replace: '/', '_'
+%}
 
 <div
   id="vpm-form-{{ scope_id }}"
   class="vpm-form vpm-form--{{ block.settings.button_style }} vpm-form-spacing-{{ block.settings.section_spacing }}"
   data-vpm-form
   data-block-id="{{ block.id }}"
-  data-form-handle="{{ handle | escape }}"
-  data-proxy-base="/apps/volume-pricing/forms/{{ handle | url_encode }}"
+  data-form-id="{{ form_key | escape }}"
+  data-form-handle="{{ form_key | escape }}"
+  data-proxy-base="/apps/volume-pricing/forms/{{ form_key | url_encode }}"
   data-show-heading="{{ block.settings.show_heading }}"
   data-show-description="{{ block.settings.show_description }}"
   style="
@@ -21,9 +27,12 @@
     --vpm-btn-bg: {{ block.settings.button_background }};
     --vpm-btn-text: {{ block.settings.button_text_color }};
   "
+  {{ block.shopify_attributes }}
 >
-  {% if handle == blank %}
-    <p class="vpm-form__setup">Add a form handle in the block settings (from the app → Forms → Embed).</p>
+  {% if form_key == blank %}
+    <p class="vpm-form__setup">
+      Add your <strong>Form ID</strong> in the block settings (App → Forms → Embed).
+    </p>
   {% else %}
     <div class="vpm-form__loading" data-vpm-loading>Loading form…</div>
     <div class="vpm-form__error" data-vpm-error hidden></div>
@@ -41,57 +50,64 @@
 
 {% schema %}
 {
-  "name": "t:name",
+  "name": "Volume Pricing Form",
   "target": "section",
   "stylesheet": "vpm-form.css",
   "javascript": "vpm-form.js",
+  "templates": ["index", "page", "product", "collection", "blog", "article", "cart", "list-collections", "search", "404"],
   "settings": [
     {
       "type": "text",
+      "id": "form_id",
+      "label": "Form ID",
+      "info": "Paste the Form ID from the app (Forms → Embed). Handle also works."
+    },
+    {
+      "type": "text",
       "id": "form_handle",
-      "label": "t:settings.form_handle",
-      "info": "Paste the handle from the app Forms → Embed page. Theme Editor cannot list forms dynamically."
+      "label": "Form handle (legacy)",
+      "info": "Optional fallback if Form ID is empty."
     },
     {
       "type": "checkbox",
       "id": "show_heading",
-      "label": "t:settings.show_heading",
+      "label": "Show form title",
       "default": true
     },
     {
       "type": "checkbox",
       "id": "show_description",
-      "label": "t:settings.show_description",
+      "label": "Show form description",
       "default": true
     },
     {
       "type": "color",
       "id": "heading_color",
-      "label": "t:settings.heading_color",
+      "label": "Heading color",
       "default": "#121212"
     },
     {
       "type": "color",
       "id": "text_color",
-      "label": "t:settings.text_color",
+      "label": "Text color",
       "default": "#333333"
     },
     {
       "type": "color",
       "id": "button_background",
-      "label": "t:settings.button_background",
+      "label": "Button background",
       "default": "#121212"
     },
     {
       "type": "color",
       "id": "button_text_color",
-      "label": "t:settings.button_text_color",
+      "label": "Button text color",
       "default": "#ffffff"
     },
     {
       "type": "select",
       "id": "section_spacing",
-      "label": "t:settings.section_spacing",
+      "label": "Section spacing",
       "options": [
         { "value": "compact", "label": "Compact" },
         { "value": "default", "label": "Default" },
@@ -102,10 +118,10 @@
     {
       "type": "select",
       "id": "button_style",
-      "label": "t:settings.button_style",
+      "label": "Button style",
       "options": [
-        { "value": "solid", "label": "t:settings.button_style.options.solid.label" },
-        { "value": "outline", "label": "t:settings.button_style.options.outline.label" }
+        { "value": "solid", "label": "Solid" },
+        { "value": "outline", "label": "Outline" }
       ],
       "default": "solid"
     }

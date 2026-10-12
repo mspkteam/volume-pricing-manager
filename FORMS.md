@@ -9,24 +9,28 @@ Publishable storefront forms for wholesale / contractor applications and general
    - `url` = `${SHOPIFY_APP_URL}/proxy` (e.g. `https://volume-pricing-manager.vercel.app/proxy`)
    - `subpath` = `volume-pricing`
    - `prefix` = `apps`
-3. Push / deploy so the theme extension `volume-pricing-form` is available in the Theme Editor.
+3. Deploy the theme extension (`shopify app deploy`) so **App embeds → Volume Pricing** and the **Volume Pricing Form** block appear in the Theme Editor.
 4. (Optional but required for file fields) Configure private upload storage — see below.
-5. In admin: **Forms → Create → Publish → Embed**, copy the handle, paste into the theme block setting.
+5. In admin: **Forms → Create → Publish → Embed**, copy the **Form ID**, enable the App embed, add the Form block, paste the Form ID.
 
 ## App proxy paths
 
 | Storefront path | App route | Purpose |
 | --- | --- | --- |
-| `/apps/volume-pricing/forms/{handle}` | `proxy.forms.$handle` | GET published schema |
-| `/apps/volume-pricing/forms/{handle}/submit` | `proxy.forms.$handle.submit` | POST answers + idempotency |
-| `/apps/volume-pricing/forms/{handle}/upload` | `proxy.forms.$handle.upload` | POST multipart file |
+| `/apps/volume-pricing/forms/{idOrHandle}` | `proxy.forms.$handle` | GET published schema (Form ID or handle) |
+| `/apps/volume-pricing/forms/{idOrHandle}/submit` | `proxy.forms.$handle.submit` | POST answers + idempotency |
+| `/apps/volume-pricing/forms/{idOrHandle}/upload` | `proxy.forms.$handle.upload` | POST multipart file |
 | `/apps/volume-pricing/account/status` | `proxy.account.status` | GET customer application + tier + spend |
 
-Shopify signs `logged_in_customer_id` on proxy query strings. After `authenticate.public.appProxy(request)`, read it from `URL.searchParams` — never invent customer identities from email alone.
+Shopify signs `logged_in_customer_id` on app proxy query strings. After `authenticate.public.appProxy(request)`, read it from `URL.searchParams` — never invent customer identities from email alone.
 
-## Theme embed
+## Theme embed (App embed + Form ID widget)
 
-Theme Editor **cannot** dynamically list app forms. Merchants must paste the form handle into the block’s text setting. The block loads schema from the proxy and scopes CSS/JS per `block.id`.
+1. **App embed** (`blocks/app-embed.liquid`, target `body`) — Theme settings → App embeds → **Volume Pricing**. Loads the form runtime globally (like other apps).
+2. **Form widget** (`blocks/application-form.liquid`, target `section`) — add to a page and paste **Form ID** from Forms → Embed (handle still works).
+3. Optional HTML with embed on: `<div data-vpm-form data-form-id="FORM_ID"></div>` or `VPMForm.render('#el', { formId })`.
+
+Theme Editor cannot dynamically list app forms; merchants paste the Form ID into the block setting.
 
 ## Uploads
 
@@ -68,7 +72,7 @@ In-memory rate limits protect proxy endpoints (`app/services/forms/rate-limit.ts
 - `/app/forms` — list
 - `/app/forms/new` — create
 - `/app/forms/:id` — builder
-- `/app/forms/:id/embed` — handle + theme steps
+- `/app/forms/:id/embed` — Form ID + App embed / widget steps
 - `/app/forms/:id/submissions` — per-form list
 - `/app/forms/:id/submissions/:submissionId` — detail + review
 - `/app/applications` — cross-form inbox

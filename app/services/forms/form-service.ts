@@ -270,7 +270,22 @@ export async function getPublishedByHandle(
   shopId: string,
   handle: string,
 ) {
+  return getPublishedForm(prisma, shopId, handle);
+}
+
+/** Resolve a published form by Shopify-facing Form ID (cuid) or handle. */
+export async function getPublishedForm(
+  prisma: PrismaClient,
+  shopId: string,
+  idOrHandle: string,
+) {
+  const key = idOrHandle.trim();
+  if (!key) return null;
   return prisma.applicationForms.findFirst({
-    where: { shopId, handle, status: "PUBLISHED" },
+    where: {
+      shopId,
+      status: "PUBLISHED",
+      OR: [{ id: key }, { handle: key }],
+    },
   });
 }

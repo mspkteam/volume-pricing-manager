@@ -26,7 +26,11 @@ export async function submitFormApplication(
   },
 ) {
   const form = await prisma.applicationForms.findFirst({
-    where: { shopId: args.shopId, handle: args.formHandle, status: "PUBLISHED" },
+    where: {
+      shopId: args.shopId,
+      status: "PUBLISHED",
+      OR: [{ handle: args.formHandle }, { id: args.formHandle }],
+    },
   });
   if (!form || !form.publishedSchema || form.publishedVersion == null) {
     throw new Response(JSON.stringify({ error: "Form unavailable" }), {

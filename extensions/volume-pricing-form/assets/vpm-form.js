@@ -345,10 +345,47 @@
     return ids;
   }
 
+  function ensureFormShell(root) {
+    if (root.querySelector("[data-vpm-body]")) return;
+    root.innerHTML =
+      '<div class="vpm-form__loading" data-vpm-loading>Loading form…</div>' +
+      '<div class="vpm-form__error" data-vpm-error hidden></div>' +
+      '<div class="vpm-form__success" data-vpm-success hidden></div>' +
+      '<form class="vpm-form__body" data-vpm-body hidden novalidate>' +
+      '<div data-vpm-steps></div>' +
+      '<div class="vpm-form__nav" data-vpm-nav>' +
+      '<button type="button" class="vpm-form__btn vpm-form__btn--secondary" data-vpm-prev hidden>Back</button>' +
+      '<button type="button" class="vpm-form__btn" data-vpm-next hidden>Continue</button>' +
+      '<button type="submit" class="vpm-form__btn" data-vpm-submit>Submit</button>' +
+      "</div></form>";
+  }
+
+  function resolveProxyBase(root) {
+    var existing = root.getAttribute("data-proxy-base");
+    if (existing) return existing;
+    var formKey =
+      root.getAttribute("data-form-id") ||
+      root.getAttribute("data-form-handle") ||
+      "";
+    formKey = String(formKey).trim();
+    if (!formKey) return null;
+    var base =
+      (window.VPM && window.VPM.proxyFormsBase) || "/apps/volume-pricing/forms";
+    return base.replace(/\/$/, "") + "/" + encodeURIComponent(formKey);
+  }
+
   function mount(root) {
-    var handle = root.getAttribute("data-form-handle");
-    var proxyBase = root.getAttribute("data-proxy-base");
-    if (!handle) return;
+    if (root.getAttribute("data-vpm-mounted") === "1") return;
+    var formKey =
+      (root.getAttribute("data-form-id") ||
+        root.getAttribute("data-form-handle") ||
+        "").trim();
+    var proxyBase = resolveProxyBase(root);
+    if (!formKey || !proxyBase) return;
+
+    root.setAttribute("data-vpm-mounted", "1");
+    root.setAttribute("data-proxy-base", proxyBase);
+    ensureFormShell(root);
 
     var loading = root.querySelector("[data-vpm-loading]");
     var errorBox = root.querySelector("[data-vpm-error]");
@@ -358,8 +395,8 @@
     var prevBtn = root.querySelector("[data-vpm-prev]");
     var nextBtn = root.querySelector("[data-vpm-next]");
     var submitBtn = root.querySelector("[data-vpm-submit]");
-    var showHeading = root.getAttribute("data-show-heading") === "true";
-    var showDescription = root.getAttribute("data-show-description") === "true";
+    var showHeading = root.getAttribute("data-show-heading") !== "false";
+    var showDescription = root.getAttribute("data-show-description") !== "false";
 
     var state = {
       schema: null,
@@ -532,6 +569,31 @@
   function init() {
     document.querySelectorAll("[data-vpm-form]").forEach(mount);
   }
+
+  window.VPMForm = {
+    mount: mount,
+    render: function (target, options) {
+      options = options || {};
+      var el =
+        typeof target === "string" ? document.querySelector(target) : target;
+      if (!el) return null;
+      el.setAttribute("data-vpm-form", "");
+      if (options.formId) {
+        el.setAttribute("data-form-id", String(options.formId));
+        el.removeAttribute("data-vpm-mounted");
+      }
+      if (options.formHandle) {
+        el.setAttribute("data-form-handle", String(options.formHandle));
+        el.removeAttribute("data-vpm-mounted");
+      }
+      if (options.showHeading === false) el.setAttribute("data-show-heading", "false");
+      if (options.showDescription === false)
+        el.setAttribute("data-show-description", "false");
+      mount(el);
+      return el;
+    },
+    refresh: init,
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);

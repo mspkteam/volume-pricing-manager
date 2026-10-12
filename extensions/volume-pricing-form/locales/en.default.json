@@ -1,8 +1,11 @@
 {
   "name": "Volume Pricing Form",
   "settings": {
+    "form_id": {
+      "label": "Form ID"
+    },
     "form_handle": {
-      "label": "Form handle"
+      "label": "Form handle (legacy)"
     },
     "show_heading": {
       "label": "Show form title"

@@ -8,7 +8,7 @@ import {
   uploadsConfigured,
   uploadSetupMessage,
 } from "../services/uploads/storage";
-import { getPublishedByHandle } from "../services/forms/form-service";
+import { getPublishedForm } from "../services/forms/form-service";
 import type { FormSchema } from "../services/forms/field-registry";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -42,7 +42,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     );
   }
 
-  const form = await getPublishedByHandle(prisma, shop.id, handle);
+  const form = await getPublishedForm(prisma, shop.id, handle);
   if (!form) {
     return Response.json({ error: "Form not found" }, { status: 404 });
   }

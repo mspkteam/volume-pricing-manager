@@ -2,7 +2,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../services/shop/shop-service";
-import { getPublishedByHandle } from "../services/forms/form-service";
+import { getPublishedForm } from "../services/forms/form-service";
 import { toStorefrontSchema } from "../services/forms/storefront-schema";
 import type { FormSchema } from "../services/forms/field-registry";
 import { rateLimit } from "../services/forms/rate-limit";
@@ -25,7 +25,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     );
   }
 
-  const form = await getPublishedByHandle(prisma, shop.id, handle);
+  const form = await getPublishedForm(prisma, shop.id, handle);
   if (!form || !form.publishedSchema || form.publishedVersion == null || !form.publishedCacheKey) {
     return Response.json({ error: "Form not found" }, { status: 404 });
   }

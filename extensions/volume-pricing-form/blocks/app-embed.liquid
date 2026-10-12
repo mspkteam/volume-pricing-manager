@@ -1,0 +1,60 @@
+{% comment %}
+  Volume Pricing — App Embed
+  Enable under Theme settings → App embeds (like other Shopify apps).
+  Loads the form widget runtime so merchants can:
+  1) Add the "Volume Pricing Form" app block and paste Form ID, or
+  2) Place <div data-vpm-form data-form-id="FORM_ID"></div> in custom Liquid / pages.
+{% endcomment %}
+
+<script>
+  window.VPM = window.VPM || {};
+  window.VPM.proxyFormsBase = {{ '/apps/volume-pricing/forms' | json }};
+  window.VPM.embedEnabled = true;
+</script>
+
+{% schema %}
+{
+  "name": "Volume Pricing",
+  "target": "body",
+  "javascript": "vpm-form.js",
+  "stylesheet": "vpm-form.css",
+  "settings": [
+    {
+      "type": "header",
+      "content": "How to show a form"
+    },
+    {
+      "type": "paragraph",
+      "content": "1. Turn this App embed ON. 2. Add the “Volume Pricing Form” block to a page (or paste a Form ID widget). 3. Paste the Form ID from the app → Forms → Embed."
+    },
+    {
+      "type": "header",
+      "content": "Optional default form on every page"
+    },
+    {
+      "type": "text",
+      "id": "default_form_id",
+      "label": "Default Form ID",
+      "info": "Rarely needed. Leave blank and use the Form app block on specific pages instead."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_default_form",
+      "label": "Render default form via this embed",
+      "default": false
+    }
+  ]
+}
+{% endschema %}
+
+{% if block.settings.show_default_form and block.settings.default_form_id != blank %}
+  {% assign form_key = block.settings.default_form_id | strip %}
+  <div
+    class="vpm-form vpm-form--embed-default"
+    data-vpm-form
+    data-form-id="{{ form_key | escape }}"
+    data-proxy-base="/apps/volume-pricing/forms/{{ form_key | url_encode }}"
+    data-show-heading="true"
+    data-show-description="true"
+  ></div>
+{% endif %}
