@@ -73,33 +73,40 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
     planName?: string | null;
     distribution: "app_store" | "custom" | "unknown";
     functionsAvailable?: boolean | null;
+    partnerDevelopment?: boolean;
   }): Promise<PricingProviderResult> {
-    if (ctx.distribution === "unknown" || ctx.functionsAvailable == null) {
+    if (ctx.functionsAvailable == null) {
       return {
         status: "NOT_CONFIGURED",
         compatibility: "SETUP_REQUIRED",
         message:
-          "Pricing integration requires verification of app distribution and Shopify Functions availability. Tier automation and wholesale tags work independently; checkout Function discounts stay Setup required until verified.",
+          "Checkout Function status has not been verified yet. Click “Verify & activate checkout pricing” in Settings. Storefront wholesale prices from customer tags already work without this.",
       };
     }
 
     const plan = (ctx.planName || "").toLowerCase();
-    const isPlus = plan.includes("plus") || plan.includes("enterprise");
+    const isPlus =
+      Boolean(ctx.partnerDevelopment) ||
+      plan.includes("plus") ||
+      plan.includes("enterprise") ||
+      plan.includes("partner") ||
+      plan.includes("development");
 
     if (ctx.distribution === "custom" && !isPlus) {
       return {
         status: "UNSUPPORTED",
         compatibility: "UNSUPPORTED",
         message:
-          "Custom-distributed apps can only use Shopify Functions on Shopify Plus or Enterprise. Wholesale tag-based storefront pricing can still run without Functions.",
+          "Checkout Function discounts need Shopify Plus (or a partner development store) for custom apps. Storefront tag pricing still works — buyers see wholesale prices on the theme.",
       };
     }
 
     if (ctx.functionsAvailable === false) {
       return {
-        status: "UNSUPPORTED",
-        compatibility: "UNSUPPORTED",
-        message: "Shopify Functions are not available for this shop/app combination.",
+        status: "NOT_CONFIGURED",
+        compatibility: "SETUP_REQUIRED",
+        message:
+          "No Discount Function is registered for this app yet. Deploy the app (with the volume-tier-discount extension), then click Activate. Storefront tag pricing is unaffected.",
       };
     }
 
@@ -107,7 +114,7 @@ export class DiscountFunctionPricingProvider implements PricingProvider {
       status: "READY",
       compatibility: "SUPPORTED",
       message:
-        "Discount Function pricing appears compatible. Deploy the extension and create the automatic discount to enable checkout sync.",
+        "Checkout Discount Function is available. Activate to create the automatic discount and sync tier metafields at checkout. Storefront tag pricing already works.",
     };
   }
 

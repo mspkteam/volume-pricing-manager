@@ -61,7 +61,8 @@ async function handleJob(job: Awaited<ReturnType<typeof claimNextJobs>>[number])
     }
     case JOB_TYPES.SYNC_PRICING_CUSTOMER: {
       const shop = await ensureShop(prisma, job.shopDomain);
-      const writesEnabled = process.env.PRICING_WRITES_ENABLED === "true";
+      const { shopCheckoutWritesEnabled } = await import("./services/pricing/probe-compatibility");
+      const writesEnabled = shopCheckoutWritesEnabled(shop.pricingExternalIds);
       let admin = null as Awaited<ReturnType<typeof unauthenticated.admin>>["admin"] | null;
       try {
         ({ admin } = await unauthenticated.admin(job.shopDomain));
@@ -160,7 +161,8 @@ async function handleJob(job: Awaited<ReturnType<typeof claimNextJobs>>[number])
     }
     case JOB_TYPES.SYNC_PRICING_SHOP: {
       const shop = await ensureShop(prisma, job.shopDomain);
-      const writesEnabled = process.env.PRICING_WRITES_ENABLED === "true";
+      const { shopCheckoutWritesEnabled } = await import("./services/pricing/probe-compatibility");
+      const writesEnabled = shopCheckoutWritesEnabled(shop.pricingExternalIds);
       let admin = null as Awaited<ReturnType<typeof unauthenticated.admin>>["admin"] | null;
       try {
         ({ admin } = await unauthenticated.admin(job.shopDomain));

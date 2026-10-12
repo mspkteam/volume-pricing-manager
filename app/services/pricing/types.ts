@@ -75,6 +75,7 @@ export interface PricingProvider {
     planName?: string | null;
     distribution: "app_store" | "custom" | "unknown";
     functionsAvailable?: boolean | null;
+    partnerDevelopment?: boolean;
   }): Promise<PricingProviderResult>;
 
   /** Push shop-level tier configuration (discount function metafields, segments, etc.) */

@@ -155,9 +155,10 @@ export default function Dashboard() {
       {data.shop.pricingStatus === "NOT_CONFIGURED" ||
       data.shop.pricingCompatibility === "SETUP_REQUIRED" ||
       data.shop.pricingCompatibility === "UNKNOWN" ? (
-        <s-banner tone="warning" heading="Checkout pricing: Setup required">
-          Storefront tag pricing can still work. Verify Shopify Functions (Plus / custom app) before
-          enabling checkout pricing writes in Settings.
+        <s-banner tone="info" heading="Storefront pricing is active">
+          Approved buyers already get wholesale prices from tags on the storefront. Checkout Function
+          discounts are optional — open Settings to verify &amp; activate if you want them at checkout
+          too.
         </s-banner>
       ) : null}
 

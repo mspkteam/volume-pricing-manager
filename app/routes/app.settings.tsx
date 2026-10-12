@@ -5,6 +5,12 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop, parseSpendPolicy } from "../services/shop/shop-service";
 import { getPricingProvider } from "../services/pricing/discount-function-provider";
+import {
+  createVolumeAutomaticDiscount,
+  probePricingCompatibility,
+  resolveAppDistribution,
+  shopCheckoutWritesEnabled,
+} from "../services/pricing/probe-compatibility";
 import { writeAuditLog } from "../services/audit/audit-log";
 import type { SpendPolicy } from "../lib/policies";
 import {
@@ -49,15 +55,42 @@ async function resolveResourceTitles(
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(prisma, session.shop);
-  const distribution =
-    (process.env.SHOPIFY_APP_DISTRIBUTION as "app_store" | "custom" | "unknown") || "unknown";
-  const provider = getPricingProvider(shop.pricingProvider, null, false);
+  const distribution = resolveAppDistribution();
+  const probe = await probePricingCompatibility(admin, distribution);
+  const writesEnabled = shopCheckoutWritesEnabled(shop.pricingExternalIds);
+  const provider = getPricingProvider(shop.pricingProvider, admin, writesEnabled);
   const compatibility = await provider.verifyCompatibility({
     shopDomain: session.shop,
-    distribution,
-    planName: null,
-    functionsAvailable: null,
+    distribution: probe.distribution,
+    planName: probe.planName,
+    functionsAvailable: probe.error ? null : probe.functionsAvailable,
+    partnerDevelopment: probe.partnerDevelopment || probe.isPlusEligible,
   });
+
+  // Persist latest probe so Home / other pages stop showing stale “Setup required”
+  if (
+    shop.pricingStatus !== compatibility.status ||
+    shop.pricingCompatibility !== compatibility.compatibility
+  ) {
+    await prisma.shop.update({
+      where: { id: shop.id },
+      data: {
+        pricingStatus: compatibility.status,
+        pricingCompatibility: compatibility.compatibility,
+        pricingCompatibilityNote: compatibility.message,
+        pricingExternalIds: {
+          ...((shop.pricingExternalIds as Record<string, unknown>) || {}),
+          shopGid: probe.shopGid,
+          functionId: probe.functionId,
+          discountGid:
+            probe.discountGid ||
+            ((shop.pricingExternalIds as { discountGid?: string })?.discountGid ?? null),
+          planName: probe.planName,
+          lastProbedAt: new Date().toISOString(),
+        },
+      },
+    });
+  }
 
   const spendPolicy = parseSpendPolicy(shop.spendPolicy);
   const [excludedProducts, excludedCollections] = await Promise.all([
@@ -70,8 +103,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       displayName: shop.displayName,
       currencyCode: shop.currencyCode,
       timezone: shop.timezone,
-      pricingStatus: shop.pricingStatus,
-      pricingCompatibility: shop.pricingCompatibility,
+      pricingStatus: compatibility.status,
+      pricingCompatibility: compatibility.compatibility,
       discountCombination: shop.discountCombination,
     },
     spendPolicy,
@@ -79,12 +112,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     excludedCollections,
     providerLabel: provider.capability.displayName,
     liveCompatibility: compatibility,
-    writesEnabled: process.env.PRICING_WRITES_ENABLED === "true",
+    writesEnabled,
+    probe: {
+      planName: probe.planName,
+      distribution: probe.distribution,
+      functionsAvailable: probe.functionsAvailable,
+      functionTitle: probe.functionTitle,
+      functionId: probe.functionId,
+      discountGid: probe.discountGid,
+      isPlusEligible: probe.isPlusEligible,
+      error: probe.error,
+    },
+    storefrontPricing: {
+      status: "ACTIVE",
+      message:
+        "Customer tags (vpm-approved, vpm-pct-*, Wholesale / Distributor / Retailer) drive prices on the theme. No checkout Function required.",
+    },
   };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(prisma, session.shop);
   const form = await request.formData();
   const intent = String(form.get("intent"));
@@ -102,17 +150,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
-        // Keep previous channel filter unless we expose UI again
         includedSalesChannels: existing.includedSalesChannels,
       };
 
-      const distribution =
-        (process.env.SHOPIFY_APP_DISTRIBUTION as "app_store" | "custom" | "unknown") || "unknown";
-      const provider = getPricingProvider("discount_function", null, false);
+      const distribution = resolveAppDistribution();
+      const probe = await probePricingCompatibility(admin, distribution);
+      const writesEnabled = shopCheckoutWritesEnabled(shop.pricingExternalIds);
+      const provider = getPricingProvider("discount_function", admin, writesEnabled);
       const compatibility = await provider.verifyCompatibility({
         shopDomain: session.shop,
-        distribution,
-        functionsAvailable: null,
+        distribution: probe.distribution,
+        planName: probe.planName,
+        functionsAvailable: probe.error ? null : probe.functionsAvailable,
+        partnerDevelopment: probe.partnerDevelopment || probe.isPlusEligible,
       });
 
       await prisma.shop.update({
@@ -139,6 +189,134 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
       return { ok: true, message: "Settings saved." };
     }
+
+    if (intent === "activate_checkout") {
+      const distribution = resolveAppDistribution();
+      const probe = await probePricingCompatibility(admin, distribution);
+      if (probe.error) {
+        return { ok: false, message: `Could not verify shop: ${probe.error}` };
+      }
+
+      const provider = getPricingProvider("discount_function", admin, false);
+      const compatibility = await provider.verifyCompatibility({
+        shopDomain: session.shop,
+        distribution: probe.distribution,
+        planName: probe.planName,
+        functionsAvailable: probe.functionsAvailable,
+        partnerDevelopment: probe.partnerDevelopment || probe.isPlusEligible,
+      });
+
+      if (compatibility.compatibility === "UNSUPPORTED") {
+        await prisma.shop.update({
+          where: { id: shop.id },
+          data: {
+            pricingStatus: compatibility.status,
+            pricingCompatibility: compatibility.compatibility,
+            pricingCompatibilityNote: compatibility.message,
+          },
+        });
+        return {
+          ok: false,
+          message: compatibility.message,
+        };
+      }
+
+      if (!probe.functionId) {
+        await prisma.shop.update({
+          where: { id: shop.id },
+          data: {
+            pricingStatus: "NOT_CONFIGURED",
+            pricingCompatibility: "SETUP_REQUIRED",
+            pricingCompatibilityNote:
+              "Deploy the app with the Discount Function extension, then try Activate again.",
+          },
+        });
+        return {
+          ok: false,
+          message:
+            "No Discount Function found. Deploy the app (shopify app deploy) so the volume-tier-discount extension registers, then click Activate again. Storefront tag pricing already works.",
+        };
+      }
+
+      let discountGid =
+        probe.discountGid ||
+        ((shop.pricingExternalIds as { discountGid?: string } | null)?.discountGid ?? null);
+
+      if (!discountGid) {
+        const created = await createVolumeAutomaticDiscount(admin, probe.functionId);
+        if (created.error || !created.discountGid) {
+          return {
+            ok: false,
+            message: created.error || "Could not create automatic app discount.",
+          };
+        }
+        discountGid = created.discountGid;
+      }
+
+      const tiers = await prisma.pricingTier.findMany({
+        where: { shopId: shop.id, isActive: true, isArchived: false },
+        orderBy: { displayOrder: "asc" },
+      });
+
+      const writeProvider = getPricingProvider("discount_function", admin, true);
+      const sync = await writeProvider.syncShopConfig({
+        shopDomain: session.shop,
+        shopGid: probe.shopGid || undefined,
+        discountGid: discountGid || undefined,
+        currencyCode: shop.currencyCode,
+        discountCombination: shop.discountCombination,
+        configVersion: shop.settingsVersion + 1,
+        tiers: tiers.map((t) => ({
+          id: t.id,
+          name: t.name,
+          discountBps: t.discountBps,
+          isActive: t.isActive,
+        })),
+        externalIds: {
+          shopGid: probe.shopGid || undefined,
+          discountGid: discountGid || undefined,
+          functionId: probe.functionId,
+        },
+      });
+
+      await prisma.shop.update({
+        where: { id: shop.id },
+        data: {
+          pricingProvider: "discount_function",
+          pricingStatus: sync.status === "SYNCED" || sync.status === "READY" ? "SYNCED" : sync.status,
+          pricingCompatibility: "SUPPORTED",
+          pricingCompatibilityNote: sync.message,
+          settingsVersion: { increment: 1 },
+          pricingExternalIds: {
+            ...((shop.pricingExternalIds as Record<string, unknown>) || {}),
+            shopGid: probe.shopGid,
+            functionId: probe.functionId,
+            discountGid,
+            checkoutWritesEnabled: true,
+            planName: probe.planName,
+            activatedAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      await writeAuditLog(prisma, {
+        shopId: shop.id,
+        actor: session.shop,
+        action: "pricing.activate_checkout",
+        entityType: "Shop",
+        entityId: shop.id,
+        summary: "Activated checkout Discount Function pricing",
+        details: { discountGid, functionId: probe.functionId, sync },
+      });
+
+      return {
+        ok: true,
+        message:
+          sync.status === "SYNCED"
+            ? "Checkout pricing activated. Storefront tags and checkout Function discounts are both live."
+            : `Checkout writes enabled. ${sync.message}`,
+      };
+    }
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : "Failed" };
   }
@@ -148,6 +326,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function SettingsPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const checkoutReady =
+    data.shop.pricingCompatibility === "SUPPORTED" &&
+    (data.shop.pricingStatus === "READY" || data.shop.pricingStatus === "SYNCED");
+  const checkoutActive = data.writesEnabled && checkoutReady;
 
   return (
     <s-page heading="Settings">
@@ -197,20 +379,78 @@ export default function SettingsPage() {
         </div>
       </s-section>
 
-      <s-section heading="Checkout pricing status">
+      <s-section heading="Storefront pricing (tags)">
+        <div className="vpm-panel vpm-stack-tight">
+          <s-banner tone="success" heading="Active">
+            {data.storefrontPricing.message}
+          </s-banner>
+          <s-paragraph>
+            Approving an application writes tags like <s-text type="strong">vpm-approved</s-text> and{" "}
+            <s-text type="strong">vpm-pct-30</s-text>. MFG theme sections read those tags and show the
+            discounted price. This path does not need Shopify Functions.
+          </s-paragraph>
+        </div>
+      </s-section>
+
+      <s-section heading="Checkout pricing (optional)">
         <div className="vpm-panel vpm-stack-tight">
           <s-paragraph>
             Provider: <s-text type="strong">{data.providerLabel}</s-text>
+            {data.probe.planName ? (
+              <>
+                {" "}
+                · Plan: <s-text type="strong">{data.probe.planName}</s-text>
+              </>
+            ) : null}
+            {" "}
+            · Distribution: <s-text type="strong">{data.probe.distribution}</s-text>
           </s-paragraph>
-          <PricingStatusBadge
-            status={data.shop.pricingStatus}
-            compatibility={data.shop.pricingCompatibility}
-          />
+
+          {checkoutActive ? (
+            <s-banner tone="success" heading="Checkout Function active">
+              Automatic discount is linked and tier metafield writes are enabled.
+            </s-banner>
+          ) : (
+            <PricingStatusBadge
+              status={data.shop.pricingStatus}
+              compatibility={data.shop.pricingCompatibility}
+            />
+          )}
+
           <s-paragraph>{data.liveCompatibility.message}</s-paragraph>
+
+          {data.probe.functionTitle ? (
+            <s-paragraph>
+              Function found: <s-text type="strong">{data.probe.functionTitle}</s-text>
+            </s-paragraph>
+          ) : (
+            <s-paragraph>
+              No Discount Function registered yet — deploy the app first if you want checkout discounts.
+            </s-paragraph>
+          )}
+
+          {data.probe.error ? (
+            <s-banner tone="critical" heading="Probe error">
+              {data.probe.error}
+            </s-banner>
+          ) : null}
+
           <s-paragraph>
-            Pricing writes are {data.writesEnabled ? "enabled" : "disabled (safe default)"}. Storefront
-            tag pricing can still work without checkout Function writes.
+            <s-text type="strong">What “Setup required” meant:</s-text> only the optional checkout
+            Function path was unverified. It does <s-text type="strong">not</s-text> mean storefront
+            wholesale pricing is broken.
           </s-paragraph>
+
+          {!checkoutActive ? (
+            <Form method="post">
+              <input type="hidden" name="intent" value="activate_checkout" />
+              <SubmitButton>
+                {checkoutReady
+                  ? "Activate checkout pricing"
+                  : "Verify & activate checkout pricing"}
+              </SubmitButton>
+            </Form>
+          ) : null}
         </div>
       </s-section>
     </s-page>

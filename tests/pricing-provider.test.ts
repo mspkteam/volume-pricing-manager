@@ -4,11 +4,11 @@ import {
 } from "../app/services/pricing/discount-function-provider";
 
 describe("pricing provider compatibility", () => {
-  it("requires setup when distribution/plan unknown", async () => {
+  it("requires setup when functions availability not probed yet", async () => {
     const provider = new DiscountFunctionPricingProvider(null, { writesEnabled: false });
     const result = await provider.verifyCompatibility({
       shopDomain: "example.myshopify.com",
-      distribution: "unknown",
+      distribution: "custom",
       functionsAvailable: null,
     });
     expect(result.compatibility).toBe("SETUP_REQUIRED");
@@ -25,6 +25,19 @@ describe("pricing provider compatibility", () => {
     });
     expect(result.compatibility).toBe("UNSUPPORTED");
     expect(result.status).toBe("UNSUPPORTED");
+  });
+
+  it("supports custom apps on partner development stores", async () => {
+    const provider = new DiscountFunctionPricingProvider(null, { writesEnabled: false });
+    const result = await provider.verifyCompatibility({
+      shopDomain: "example.myshopify.com",
+      distribution: "custom",
+      planName: "Development",
+      functionsAvailable: true,
+      partnerDevelopment: true,
+    });
+    expect(result.compatibility).toBe("SUPPORTED");
+    expect(result.status).toBe("READY");
   });
 
   it("supports App Store distribution with functions", async () => {
