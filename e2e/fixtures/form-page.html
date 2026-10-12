@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>VPM Form Widget Fixture</title>
+    <link rel="stylesheet" href="/vpm-form.css" />
+  </head>
+  <body>
+    <div
+      class="vpm-form"
+      data-vpm-form
+      data-form-id="form_test_123"
+      data-proxy-base="/apps/volume-pricing/forms/form_test_123"
+      data-show-heading="true"
+      data-show-description="true"
+    >
+      <div class="vpm-form__loading" data-vpm-loading>Loading form…</div>
+      <div class="vpm-form__error" data-vpm-error hidden></div>
+      <div class="vpm-form__success" data-vpm-success hidden></div>
+      <form class="vpm-form__body" data-vpm-body hidden novalidate>
+        <div data-vpm-steps></div>
+        <div class="vpm-form__nav" data-vpm-nav>
+          <button type="button" class="vpm-form__btn vpm-form__btn--secondary" data-vpm-prev hidden>Back</button>
+          <button type="button" class="vpm-form__btn" data-vpm-next hidden>Continue</button>
+          <button type="submit" class="vpm-form__btn" data-vpm-submit>Submit</button>
+        </div>
+      </form>
+    </div>
+    <script src="/vpm-form.js"></script>
+  </body>
+</html>

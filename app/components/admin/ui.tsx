@@ -66,6 +66,26 @@ export function EmptyState({
 }
 
 /**
+ * Keep Shopify embedded session query params (shop/host/…) on a path.
+ */
+export function useEmbeddedHref(path: string): string {
+  const location = useLocation();
+  if (!path) return path;
+  if (path.startsWith("http") || path.startsWith("//") || path.startsWith("#")) {
+    return path;
+  }
+  const qIndex = path.indexOf("?");
+  const pathname = qIndex >= 0 ? path.slice(0, qIndex) : path;
+  const extra = qIndex >= 0 ? path.slice(qIndex + 1) : "";
+  const params = new URLSearchParams(location.search);
+  if (extra) {
+    new URLSearchParams(extra).forEach((v, k) => params.set(k, v));
+  }
+  const search = params.toString();
+  return search ? `${pathname}?${search}` : pathname;
+}
+
+/**
  * React Router Link that keeps Shopify embedded query params (shop/host/…).
  */
 export function AdminLink({
@@ -77,15 +97,51 @@ export function AdminLink({
   children: ReactNode;
   className?: string;
 }) {
-  const location = useLocation();
-  const pathname = to.includes("?") ? to.slice(0, to.indexOf("?")) : to;
+  const href = useEmbeddedHref(to);
+  const qIndex = href.indexOf("?");
+  const pathname = qIndex >= 0 ? href.slice(0, qIndex) : href;
+  const search = qIndex >= 0 ? href.slice(qIndex) : "";
   return (
     <Link
-      to={{ pathname, search: location.search }}
+      to={{ pathname, search }}
       className={className || "vpm-link"}
     >
       {children}
     </Link>
+  );
+}
+
+/** Polaris web-component link that keeps embedded shop/host params. */
+export function EmbeddedSLink({
+  href,
+  children,
+  ...rest
+}: {
+  href: string;
+  children?: ReactNode;
+} & Record<string, unknown>) {
+  const full = useEmbeddedHref(href);
+  return (
+    <s-link href={full} {...rest}>
+      {children}
+    </s-link>
+  );
+}
+
+/** Polaris web-component button that keeps embedded shop/host params. */
+export function EmbeddedSButton({
+  href,
+  children,
+  ...rest
+}: {
+  href?: string;
+  children?: ReactNode;
+} & Record<string, unknown>) {
+  const full = useEmbeddedHref(href || "");
+  return (
+    <s-button href={href ? full : undefined} {...rest}>
+      {children}
+    </s-button>
   );
 }
 

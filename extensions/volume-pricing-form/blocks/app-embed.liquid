@@ -10,8 +10,27 @@
   window.VPM = window.VPM || {};
   window.VPM.proxyFormsBase = {{ '/apps/volume-pricing/forms' | json }};
   window.VPM.embedEnabled = true;
+  (function () {
+    if (window.VPMForm || window.__VPM_FORM_LOADING__) return;
+    window.__VPM_FORM_LOADING__ = true;
+    var s = document.createElement("script");
+    s.src = "/apps/volume-pricing/widget/vpm-form.js";
+    s.defer = true;
+    s.onerror = function () {
+      window.__VPM_FORM_LOADING__ = false;
+      document.querySelectorAll("[data-vpm-loading]").forEach(function (el) {
+        el.textContent = "Could not load form script. Check app proxy / redeploy the app.";
+      });
+    };
+    s.onload = function () {
+      window.__VPM_FORM_LOADING__ = false;
+      if (window.VPMForm && typeof window.VPMForm.refresh === "function") {
+        window.VPMForm.refresh();
+      }
+    };
+    document.head.appendChild(s);
+  })();
 </script>
-<script src="/apps/volume-pricing/widget/vpm-form.js" defer></script>
 
 {% schema %}
 {

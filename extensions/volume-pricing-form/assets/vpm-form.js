@@ -110,7 +110,8 @@
       return wrap;
     }
 
-    var label = el("label", { className: "vpm-field__label" });
+    var inputId = "vpm-field-" + field.id;
+    var label = el("label", { className: "vpm-field__label", for: inputId });
     label.appendChild(document.createTextNode(field.label + " "));
     var reqMark = el("span", { className: "vpm-field__req", text: "*" });
     reqMark.hidden = !field.required;
@@ -120,12 +121,13 @@
     var control;
     if (field.type === "long_text") {
       control = el("textarea", {
+        id: inputId,
         name: field.id,
         placeholder: field.placeholder || "",
         rows: "4",
       });
     } else if (field.type === "dropdown" || field.type === "tier_select" || field.type === "country") {
-      control = el("select", { name: field.id });
+      control = el("select", { id: inputId, name: field.id });
       control.appendChild(el("option", { value: "", text: field.placeholder || "Select…" }));
       var opts =
         field.type === "tier_select"
@@ -183,6 +185,7 @@
       });
     } else if (field.type === "file_upload") {
       control = el("input", {
+        id: inputId,
         type: "file",
         name: field.id,
         "data-upload": "1",
@@ -205,6 +208,7 @@
       if (field.type === "number" || field.type === "currency") type = "number";
       if (field.type === "date") type = "date";
       control = el("input", {
+        id: inputId,
         type: type,
         name: field.id,
         placeholder: field.placeholder || "",
@@ -545,9 +549,15 @@
       }
     });
 
+    var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timeoutId = setTimeout(function () {
+      if (controller) controller.abort();
+    }, 15000);
+
     fetch(proxyBase + window.location.search, {
       credentials: "same-origin",
       headers: { Accept: "application/json" },
+      signal: controller ? controller.signal : undefined,
     })
       .then(function (res) {
         return res.json().then(function (data) {
@@ -556,13 +566,18 @@
         });
       })
       .then(function (schema) {
+        clearTimeout(timeoutId);
         state.schema = schema;
         if (submitBtn) submitBtn.textContent = schema.submitLabel || "Submit";
         render();
       })
       .catch(function (err) {
+        clearTimeout(timeoutId);
         loading.hidden = true;
-        showError(err.message || "Could not load form");
+        var msg = err && err.name === "AbortError"
+          ? "Timed out loading form. Check the Form ID and app proxy."
+          : (err && err.message) || "Could not load form";
+        showError(msg);
       });
   }
 
