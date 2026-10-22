@@ -32,3 +32,4 @@ database.sqlite
 /blob-report/
 /playwright/.cache/
 
+.vercel

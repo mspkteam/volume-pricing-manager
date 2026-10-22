@@ -178,18 +178,32 @@
         control.appendChild(row);
       });
     } else if (field.type === "checkbox" || field.type === "consent") {
-      control = el("label", { className: "vpm-choice" });
-      control.appendChild(el("input", { type: "checkbox", name: field.id, value: "true" }));
-      var txt = field.label;
+      // Single inline row: checkbox + label (no duplicate heading label)
+      label.hidden = true;
+      label.setAttribute("aria-hidden", "true");
+      control = el("label", { className: "vpm-choice vpm-choice--inline", for: inputId });
+      control.appendChild(
+        el("input", { id: inputId, type: "checkbox", name: field.id, value: "true" }),
+      );
+      var textWrap = el("span", { className: "vpm-choice__text" });
       if (field.type === "consent" && field.settings && field.settings.policyUrl) {
-        txt =
-          field.label +
-          " (" +
-          (field.settings.policyLabel || "policy") +
-          ")";
+        var policyLabel = field.settings.policyLabel || "Terms and Privacy Policy";
+        textWrap.appendChild(document.createTextNode("I agree to the "));
+        var policyLink = el("a", {
+          href: field.settings.policyUrl,
+          target: "_blank",
+          rel: "noopener noreferrer",
+        });
+        policyLink.textContent = policyLabel;
+        textWrap.appendChild(policyLink);
+      } else {
+        textWrap.appendChild(document.createTextNode(field.label || ""));
       }
-      control.appendChild(document.createTextNode(" " + txt));
-      wrap.querySelector(".vpm-field__label").hidden = true;
+      if (field.required) {
+        textWrap.appendChild(document.createTextNode(" "));
+        textWrap.appendChild(el("span", { className: "vpm-field__req", text: "*" }));
+      }
+      control.appendChild(textWrap);
     } else if (field.type === "address") {
       control = el("div", { className: "vpm-address", "data-address": "1" });
       ["line1", "line2", "city", "region", "postal", "country"].forEach(function (key) {

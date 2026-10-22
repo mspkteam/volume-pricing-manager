@@ -14,7 +14,8 @@ import {
   FlashBanner,
   PageIntro,
 } from "../components/admin/ui";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, formatFormAnswer } from "../lib/format";
+import { pricingStatusLabel } from "../lib/pricing-status";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -40,7 +41,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const tiers = await prisma.pricingTier.findMany({
     where: { shopId: shop.id, isArchived: false },
     orderBy: { minSpendMinor: "asc" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, discountBps: true },
   });
 
   const answers = (submission.answers || {}) as Record<string, unknown>;
@@ -57,6 +58,39 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       type: snapshots[f.id]?.type || f.type,
       value: answers[f.id] ?? null,
     }));
+
+  const uploadIds = customFields
+    .filter((f) => f.type === "file_upload" && f.value != null && f.value !== "")
+    .flatMap((f) => (Array.isArray(f.value) ? f.value : [f.value]))
+    .map(String)
+    .filter(Boolean);
+
+  const uploads =
+    uploadIds.length > 0
+      ? await prisma.formUploads.findMany({
+          where: { shopId: shop.id, id: { in: uploadIds } },
+          select: { id: true, originalFilename: true },
+        })
+      : [];
+
+  const tiersById: Record<string, { name: string; discountBps?: number }> = Object.fromEntries(
+    tiers.map((t) => [t.id, { name: t.name, discountBps: t.discountBps }]),
+  );
+  const uploadsById: Record<string, { originalFilename: string }> = Object.fromEntries(
+    uploads.map((u) => [u.id, { originalFilename: u.originalFilename }]),
+  );
+
+  const requested = submission.requestedTierSnapshot as {
+    id?: string;
+    name?: string;
+    discountBps?: number;
+  } | null;
+  if (requested?.id && requested.name && !tiersById[requested.id]) {
+    tiersById[requested.id] = {
+      name: requested.name,
+      discountBps: requested.discountBps,
+    };
+  }
 
   return {
     form: { id: form.id, title: form.title, handle: form.handle },
@@ -78,6 +112,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       reviewHistory: submission.reviewHistory,
     },
     customFields,
+    answerFormat: { tiersById, uploadsById },
     pricing: submission.customerProfile
       ? {
           profileId: submission.customerProfile.id,
@@ -148,18 +183,11 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   }
 };
 
-function formatAnswer(value: unknown): string {
-  if (value == null || value === "") return "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (Array.isArray(value)) return value.map(String).join(", ");
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
-  return String(value);
-}
-
 export default function SubmissionDetailPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const s = data.submission;
+  const storefrontActive = Boolean(data.pricing?.effectiveTier && data.pricing?.businessApproved);
 
   return (
     <s-page heading={s.applicantName || s.applicantEmail || "Submission"}>
@@ -175,8 +203,8 @@ export default function SubmissionDetailPage() {
       ) : null}
 
       <PageIntro>
-        Application status is independent of pricing sync. Approving eligibility does not
-        automatically grant the requested tier unless you set an audited starting-tier override.
+        Application status is independent of checkout discount sync. Approving eligibility assigns
+        storefront tags; checkout Automatic Discounts remain optional.
       </PageIntro>
 
       <s-section heading="Status">
@@ -191,15 +219,30 @@ export default function SubmissionDetailPage() {
               : ""}
           </s-paragraph>
           {data.pricing ? (
-            <s-paragraph>
-              Pricing sync: <s-badge>{data.pricing.pricingSyncStatus}</s-badge>
-              {data.pricing.effectiveTier
-                ? ` · Effective tier: ${data.pricing.effectiveTier}`
-                : ""}
-              {data.pricing.pricingLastError ? (
-                <> · Error: {data.pricing.pricingLastError}</>
-              ) : null}
-            </s-paragraph>
+            <>
+              <s-paragraph>
+                Storefront pricing:{" "}
+                <s-badge tone={storefrontActive ? "success" : undefined}>
+                  {storefrontActive
+                    ? "Active"
+                    : data.pricing.effectiveTier
+                      ? "Assigned"
+                      : "Not assigned"}
+                </s-badge>
+                {data.pricing.effectiveTier
+                  ? ` · Effective tier: ${data.pricing.effectiveTier}`
+                  : ""}
+                {data.pricing.businessApproved ? " · Business approved" : ""}
+              </s-paragraph>
+              <s-paragraph>
+                Checkout discount sync:{" "}
+                <s-badge>{pricingStatusLabel(data.pricing.pricingSyncStatus)}</s-badge>
+                {" · optional"}
+                {data.pricing.pricingLastError ? (
+                  <> · Error: {data.pricing.pricingLastError}</>
+                ) : null}
+              </s-paragraph>
+            </>
           ) : (
             <s-paragraph>No linked customer profile yet (guest or unlinked).</s-paragraph>
           )}
@@ -211,7 +254,16 @@ export default function SubmissionDetailPage() {
           <s-list-item>Name: {s.applicantName || "—"}</s-list-item>
           <s-list-item>Email: {s.applicantEmail || "—"}</s-list-item>
           <s-list-item>Company: {s.companyName || "—"}</s-list-item>
-          <s-list-item>Shopify customer: {s.shopifyCustomerId || "—"}</s-list-item>
+          <s-list-item>
+            Shopify customer:{" "}
+            {s.shopifyCustomerId && data.pricing?.profileId ? (
+              <EmbeddedSLink href={`/app/customers/${data.pricing.profileId}`}>
+                {s.shopifyCustomerId}
+              </EmbeddedSLink>
+            ) : (
+              s.shopifyCustomerId || "—"
+            )}
+          </s-list-item>
         </s-unordered-list>
       </s-section>
 
@@ -239,7 +291,7 @@ export default function SubmissionDetailPage() {
                   <s-table-cell>{f.type}</s-table-cell>
                   <s-table-cell>
                     <pre style={{ margin: 0, whiteSpace: "pre-wrap", font: "inherit" }}>
-                      {formatAnswer(f.value)}
+                      {formatFormAnswer(f.value, f.type, data.answerFormat)}
                     </pre>
                   </s-table-cell>
                 </s-table-row>

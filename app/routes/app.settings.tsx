@@ -95,6 +95,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       message:
         "Customer tags (vpm-approved, vpm-pct-*, Wholesale / Distributor / Retailer) drive prices on the theme.",
     },
+    // Stubs so a cached older Settings client bundle does not crash on data.probe.planName
+    providerLabel: checkoutMode === "automatic_basic" ? "Automatic tier discounts" : "Shopify Discount Function",
+    liveCompatibility: {
+      message:
+        shop.pricingCompatibilityNote ||
+        "Use Create checkout discounts from tiers to sync automatic % off at checkout.",
+    },
+    probe: {
+      planName: null as string | null,
+      distribution: "custom" as const,
+      functionsAvailable: false,
+      functionTitle: null as string | null,
+      functionId: null as string | null,
+      discountGid: null as string | null,
+      isPlusEligible: false,
+      error: null as string | null,
+    },
   };
 };
 

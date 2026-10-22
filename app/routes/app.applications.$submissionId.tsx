@@ -13,7 +13,8 @@ import {
   FlashBanner,
   PageIntro,
 } from "../components/admin/ui";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, formatFormAnswer } from "../lib/format";
+import { pricingStatusLabel } from "../lib/pricing-status";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -56,7 +57,39 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       value: answers[f.id] ?? null,
     }));
 
-  const requested = submission.requestedTierSnapshot as { id?: string; name?: string } | null;
+  const uploadIds = customFields
+    .filter((f) => f.type === "file_upload" && f.value != null && f.value !== "")
+    .flatMap((f) => (Array.isArray(f.value) ? f.value : [f.value]))
+    .map(String)
+    .filter(Boolean);
+
+  const uploads =
+    uploadIds.length > 0
+      ? await prisma.formUploads.findMany({
+          where: { shopId: shop.id, id: { in: uploadIds } },
+          select: { id: true, originalFilename: true },
+        })
+      : [];
+
+  const tiersById: Record<string, { name: string; discountBps?: number }> = Object.fromEntries(
+    tiers.map((t) => [t.id, { name: t.name, discountBps: t.discountBps }]),
+  );
+  const uploadsById: Record<string, { originalFilename: string }> = Object.fromEntries(
+    uploads.map((u) => [u.id, { originalFilename: u.originalFilename }]),
+  );
+
+  const requested = submission.requestedTierSnapshot as {
+    id?: string;
+    name?: string;
+    discountBps?: number;
+  } | null;
+
+  if (requested?.id && requested.name && !tiersById[requested.id]) {
+    tiersById[requested.id] = {
+      name: requested.name,
+      discountBps: requested.discountBps,
+    };
+  }
 
   return {
     form: {
@@ -84,6 +117,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       reviewHistory: submission.reviewHistory,
     },
     customFields,
+    answerFormat: { tiersById, uploadsById },
     pricing: submission.customerProfile
       ? {
           profileId: submission.customerProfile.id,
@@ -158,19 +192,12 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   }
 };
 
-function formatAnswer(value: unknown): string {
-  if (value == null || value === "") return "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (Array.isArray(value)) return value.map(String).join(", ");
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
-  return String(value);
-}
-
 export default function ApplicationReviewPage() {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const s = data.submission;
   const defaultTierId = s.requestedTierId || data.tiers[0]?.id || "";
+  const storefrontActive = Boolean(data.pricing?.effectiveTier && data.pricing?.businessApproved);
 
   return (
     <s-page heading={s.applicantName || s.applicantEmail || "Application"}>
@@ -206,18 +233,32 @@ export default function ApplicationReviewPage() {
             </s-paragraph>
           ) : null}
           {data.pricing ? (
-            <s-paragraph>
-              Pricing: <s-badge>{data.pricing.pricingSyncStatus}</s-badge>
-              {data.pricing.effectiveTier
-                ? ` · Effective: ${data.pricing.effectiveTier} (${(
-                    data.pricing.effectiveDiscountBps / 100
-                  ).toFixed(0)}% off)`
-                : ""}
-              {data.pricing.businessApproved ? " · Business approved" : ""}
-              {data.pricing.pricingLastError ? (
-                <> · Error: {data.pricing.pricingLastError}</>
-              ) : null}
-            </s-paragraph>
+            <>
+              <s-paragraph>
+                Storefront pricing:{" "}
+                <s-badge tone={storefrontActive ? "success" : undefined}>
+                  {storefrontActive
+                    ? "Active"
+                    : data.pricing.effectiveTier
+                      ? "Assigned"
+                      : "Not assigned"}
+                </s-badge>
+                {data.pricing.effectiveTier
+                  ? ` · Effective: ${data.pricing.effectiveTier} (${(
+                      data.pricing.effectiveDiscountBps / 100
+                    ).toFixed(0)}% off)`
+                  : ""}
+                {data.pricing.businessApproved ? " · Business approved" : ""}
+              </s-paragraph>
+              <s-paragraph>
+                Checkout discount sync:{" "}
+                <s-badge>{pricingStatusLabel(data.pricing.pricingSyncStatus)}</s-badge>
+                {" · optional — tags power live storefront rates"}
+                {data.pricing.pricingLastError ? (
+                  <> · Error: {data.pricing.pricingLastError}</>
+                ) : null}
+              </s-paragraph>
+            </>
           ) : (
             <s-paragraph>No linked customer profile yet (guest or unlinked).</s-paragraph>
           )}
@@ -229,7 +270,16 @@ export default function ApplicationReviewPage() {
           <s-list-item>Name: {s.applicantName || "—"}</s-list-item>
           <s-list-item>Email: {s.applicantEmail || "—"}</s-list-item>
           <s-list-item>Company: {s.companyName || "—"}</s-list-item>
-          <s-list-item>Shopify customer: {s.shopifyCustomerId || "—"}</s-list-item>
+          <s-list-item>
+            Shopify customer:{" "}
+            {s.shopifyCustomerId && data.pricing?.profileId ? (
+              <EmbeddedSLink href={`/app/customers/${data.pricing.profileId}`}>
+                {s.shopifyCustomerId}
+              </EmbeddedSLink>
+            ) : (
+              s.shopifyCustomerId || "—"
+            )}
+          </s-list-item>
         </s-unordered-list>
       </s-section>
 
@@ -257,7 +307,7 @@ export default function ApplicationReviewPage() {
                   <s-table-cell>{f.type}</s-table-cell>
                   <s-table-cell>
                     <pre style={{ margin: 0, whiteSpace: "pre-wrap", font: "inherit" }}>
-                      {formatAnswer(f.value)}
+                      {formatFormAnswer(f.value, f.type, data.answerFormat)}
                     </pre>
                   </s-table-cell>
                 </s-table-row>
