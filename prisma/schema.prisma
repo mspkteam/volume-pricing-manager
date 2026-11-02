@@ -79,6 +79,8 @@ model Shop {
   applicationForms      ApplicationForms[]
   formSubmissions       FormSubmissions[]
   formUploads           FormUploads[]
+  warrantySettings      WarrantySettings?
+  warrantyClaims        WarrantyClaims[]
 
   @@index([shopDomain])
 }
@@ -604,4 +606,72 @@ enum FormUploadScanStatus {
   CLEAN
   REJECTED
   UNAVAILABLE
+}
+
+/// Per-shop warranty claim settings (window + shipping & handling invoice)
+model WarrantySettings {
+  id                       String   @id @default(cuid())
+  shopId                   String   @unique
+  shop                     Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  /// Days from purchase date that a claim is considered within window (0 = always eligible)
+  warrantyWindowDays       Int      @default(365)
+  /// Default shipping & handling amount in minor units (cents)
+  shippingHandlingMinor    BigInt   @default(1500)
+  shippingHandlingTitle    String   @default("Warranty replacement — shipping & handling")
+  requireLogin             Boolean  @default(false)
+  requireOrderNumber       Boolean  @default(true)
+  requirePurchaseDate      Boolean  @default(true)
+  successMessage           String   @default("Thanks — your warranty claim was received. We will review it and follow up soon.")
+  introHtml                String   @default("")
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model WarrantyClaims {
+  id                          String   @id @default(cuid())
+  shopId                      String
+  shop                        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  /// Human-readable id e.g. WTY-20261102-A1B2
+  claimNumber                 String
+  status                      WarrantyClaimStatus @default(PENDING)
+  shopifyCustomerId           String?
+  customerName                String?
+  customerEmail               String
+  customerPhone               String?
+  companyName                 String?
+  productSku                  String
+  productTitle                String?
+  orderNumber                 String?
+  purchaseDate                DateTime?
+  issueDescription            String
+  /// Optional photo / proof URLs (JSON string array)
+  attachmentUrls              Json     @default("[]")
+  withinWarrantyWindow        Boolean?
+  shippingInvoiceDraftOrderId String?
+  shippingInvoiceUrl          String?
+  shippingAmountMinor         BigInt?
+  customerMessage             String?
+  internalNotes               String   @default("")
+  reviewHistory               Json     @default("[]")
+  idempotencyKey              String?
+  submittedAt                 DateTime @default(now())
+  reviewedAt                  DateTime?
+  reviewedBy                  String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@unique([shopId, claimNumber])
+  @@unique([shopId, idempotencyKey])
+  @@index([shopId, status, submittedAt])
+  @@index([shopId, customerEmail])
+  @@index([shopId, productSku])
+}
+
+enum WarrantyClaimStatus {
+  PENDING
+  NEEDS_INFORMATION
+  APPROVED
+  REJECTED
+  INVOICE_SENT
+  CLOSED
 }

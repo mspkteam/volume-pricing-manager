@@ -1,3 +1,18 @@
+export function formatMoneyMinor(
+  minor: number | null | undefined,
+  currencyCode = "USD",
+): string {
+  const n = Number(minor) || 0;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currencyCode || "USD",
+    }).format(n / 100);
+  } catch {
+    return `$${(n / 100).toFixed(2)}`;
+  }
+}
+
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "Never";
   try {

@@ -1,0 +1,97 @@
+{% comment %}
+  Volume Pricing Manager — Warranty claim form (app proxy widget).
+{% endcomment %}
+
+{{ 'vpm-warranty.css' | asset_url | stylesheet_tag }}
+
+<div
+  class="vpm-warranty"
+  data-vpm-warranty
+  data-proxy-base="/apps/volume-pricing/warranty"
+  data-submit-label="{{ block.settings.submit_label | escape }}"
+  style="
+    --vpm-text: {{ block.settings.text_color }};
+    --vpm-btn-bg: {{ block.settings.button_background }};
+    --vpm-btn-text: {{ block.settings.button_text_color }};
+  "
+  {{ block.shopify_attributes }}
+>
+  {% if block.settings.heading != blank %}
+    <h2 class="vpm-warranty__heading" style="color: {{ block.settings.heading_color }}; margin: 0 0 10px;">
+      {{ block.settings.heading }}
+    </h2>
+  {% endif %}
+  <div class="vpm-warranty__intro" data-vpm-intro></div>
+  <p class="vpm-warranty__note" data-vpm-note></p>
+  <div class="vpm-warranty__loading" data-vpm-loading>Loading warranty form…</div>
+  <div class="vpm-warranty__error" data-vpm-error hidden></div>
+  <div class="vpm-warranty__success" data-vpm-success hidden></div>
+  <form class="vpm-warranty__body" data-vpm-body hidden novalidate></form>
+</div>
+
+<script>
+  (function () {
+    if (window.VPMWarranty || window.__VPM_WARRANTY_LOADING__) return;
+    window.__VPM_WARRANTY_LOADING__ = true;
+    var s = document.createElement("script");
+    s.src = "/apps/volume-pricing/widget/vpm-warranty.js";
+    s.defer = true;
+    s.onload = function () {
+      window.__VPM_WARRANTY_LOADING__ = false;
+      if (window.VPMWarranty && window.VPMWarranty.refresh) window.VPMWarranty.refresh();
+    };
+    s.onerror = function () {
+      window.__VPM_WARRANTY_LOADING__ = false;
+      document.querySelectorAll("[data-vpm-loading]").forEach(function (el) {
+        el.textContent = "Could not load warranty form. Redeploy the app / check app proxy.";
+      });
+    };
+    document.head.appendChild(s);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Warranty claim form",
+  "target": "section",
+  "stylesheet": "vpm-warranty.css",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Submit a warranty claim"
+    },
+    {
+      "type": "text",
+      "id": "submit_label",
+      "label": "Submit button",
+      "default": "Submit warranty claim"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "button_background",
+      "label": "Button background",
+      "default": "#e21f38"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text",
+      "default": "#ffffff"
+    }
+  ]
+}
+{% endschema %}

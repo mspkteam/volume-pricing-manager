@@ -1,0 +1,90 @@
+.vpm-warranty {
+  max-width: 760px;
+  margin: 0 auto;
+  font-family: Roboto, Inter, system-ui, sans-serif;
+  color: var(--vpm-text, #333);
+}
+
+.vpm-warranty__loading,
+.vpm-warranty__error,
+.vpm-warranty__success {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.vpm-warranty__error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.vpm-warranty__success {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.vpm-warranty__note {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #71717a;
+}
+
+.vpm-warranty__intro {
+  margin-bottom: 16px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.vpm-warranty__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+.vpm-warranty__full {
+  grid-column: 1 / -1;
+}
+
+.vpm-warranty__field {
+  display: grid;
+  gap: 6px;
+}
+
+.vpm-warranty__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.vpm-warranty input,
+.vpm-warranty textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.vpm-warranty__btn {
+  margin-top: 18px;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 18px;
+  background: var(--vpm-btn-bg, #e21f38);
+  color: var(--vpm-btn-text, #fff);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vpm-warranty__btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (max-width: 700px) {
+  .vpm-warranty__grid {
+    grid-template-columns: 1fr;
+  }
+}

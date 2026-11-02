@@ -98,11 +98,11 @@ export function contractorWholesaleTemplate(): FormSchema {
     {
       id: volume,
       type: "tier_select",
-      label: "Expected annual purchase volume",
+      label: "Expected Annual Purchase Volume",
       required: true,
       width: "full",
       helperText:
-        "Expected volume is used for review and does not automatically grant a discount.",
+        "Select your expected volume tier (including Tier D). Used for review — does not automatically grant a discount.",
       settings: { availableTierIds: [], displayMode: "both" },
     },
     {

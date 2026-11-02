@@ -54,6 +54,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const reviewedApplications = await prisma.formSubmissions.count({
     where: { shopId: shop.id, status: { in: ["APPROVED", "REJECTED"] } },
   });
+  const pendingWarrantyClaims = await prisma.warrantyClaims.count({
+    where: { shopId: shop.id, status: { in: ["PENDING", "NEEDS_INFORMATION"] } },
+  });
   const publishedForms = await prisma.applicationForms.count({
     where: { shopId: shop.id, status: "PUBLISHED" },
   });
@@ -113,6 +116,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     })),
     customerCount,
     pendingApprovals,
+    pendingWarrantyClaims,
     recentChanges: recentChanges.map((c) => ({
       id: c.id,
       reason: c.reason,
@@ -134,6 +138,11 @@ export default function Dashboard() {
       <div slot="primary-action">
         <AdminLink to="/app/applications" className="vpm-btn">
           Applications
+        </AdminLink>
+      </div>
+      <div slot="secondary-actions">
+        <AdminLink to="/app/warranty" className="vpm-btn vpm-btn--secondary">
+          Warranty
         </AdminLink>
       </div>
       <div slot="secondary-actions">
@@ -174,6 +183,13 @@ export default function Dashboard() {
           label="Pending approvals"
           value={data.pendingApprovals}
           hint={data.pendingApprovals > 0 ? "Review in Customers" : undefined}
+        />
+        <StatCard
+          label="Warranty claims"
+          value={data.pendingWarrantyClaims}
+          hint={
+            data.pendingWarrantyClaims > 0 ? "Review in Warranty" : "No open claims"
+          }
         />
         <StatCard label="Active tiers" value={data.tiers.filter((t) => t.isActive).length} />
         <StatCard

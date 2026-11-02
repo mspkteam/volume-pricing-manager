@@ -206,15 +206,23 @@
       control.appendChild(textWrap);
     } else if (field.type === "address") {
       control = el("div", { className: "vpm-address", "data-address": "1" });
+      var addressLabels = {
+        line1: "Company Address",
+        line2: "Address line 2",
+        city: "City",
+        region: "Region (State)",
+        postal: "Postal Code (Zip Code)",
+        country: "Country",
+      };
       ["line1", "line2", "city", "region", "postal", "country"].forEach(function (key) {
-        control.appendChild(
-          el("input", {
-            type: "text",
-            name: field.id + "." + key,
-            placeholder: key,
-            "data-address-part": key,
-          }),
-        );
+        var inputAttrs = {
+          type: "text",
+          name: field.id + "." + key,
+          placeholder: addressLabels[key] || key,
+          "data-address-part": key,
+        };
+        if (key === "country") inputAttrs.value = "United States";
+        control.appendChild(el("input", inputAttrs));
       });
     } else if (field.type === "file_upload") {
       control = el("input", {

@@ -373,6 +373,18 @@ export function ApplicationStatusBadge({ status }: { status: string }) {
   return <s-badge tone={tone}>{status.replace(/_/g, " ")}</s-badge>;
 }
 
+export function WarrantyStatusBadge({ status }: { status: string }) {
+  const tone =
+    status === "APPROVED" || status === "INVOICE_SENT" || status === "CLOSED"
+      ? "success"
+      : status === "REJECTED"
+        ? "critical"
+        : status === "NEEDS_INFORMATION" || status === "PENDING"
+          ? "warning"
+          : undefined;
+  return <s-badge tone={tone}>{status.replace(/_/g, " ")}</s-badge>;
+}
+
 export function buildQuery(params: Record<string, string | number | undefined | null>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
