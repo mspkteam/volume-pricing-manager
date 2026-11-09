@@ -100,6 +100,7 @@ export default function App() {
         <NavTo to="/app/warranty">Warranty</NavTo>
         <NavTo to="/app/forms">Forms</NavTo>
         <NavTo to="/app/wholesale">Wholesale</NavTo>
+        <NavTo to="/app/equipment-setup">Equipment</NavTo>
         <NavTo to="/app/settings">Settings</NavTo>
       </NavMenu>
       <Outlet />

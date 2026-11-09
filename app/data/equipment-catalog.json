@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "hub_page_handle": "equipment",
+  "menu_handle": "equipment",
+  "namespace": "hvac",
+  "top_categories": [
+    {
+      "handle": "complete-hvac-systems",
+      "title": "Complete HVAC Systems",
+      "thumbnail": "eq-complete-systems.png",
+      "children": [
+        { "handle": "all-hvac-systems", "title": "All HVAC Systems", "thumbnail": "eq-complete-kits.png" },
+        { "handle": "ductless-mini-split-systems", "title": "Ductless Mini Split", "thumbnail": "eq-ductless.png", "children": [
+          { "handle": "single-zone-systems", "title": "Single Zone Systems", "thumbnail": "eq-ductless-single.png" },
+          { "handle": "multi-zone-systems", "title": "Multi Zone Systems", "thumbnail": "eq-ductless-multi.png" }
+        ]},
+        { "handle": "split-heat-pump-ducted-systems", "title": "Split Heat Pump Ducted Systems", "thumbnail": "eq-split-hp-ducted.png" },
+        { "handle": "split-gas-ducted-systems", "title": "Split Gas Ducted Systems", "thumbnail": "eq-split-gas-ducted.png" },
+        { "handle": "compact-size-ahu-systems", "title": "Compact Size AHU Systems", "thumbnail": "eq-compact-ahu-systems.png" }
+      ]
+    },
+    {
+      "handle": "ac-condensers",
+      "title": "A/C Condensers",
+      "thumbnail": "eq-ac-condensers.png",
+      "children": [
+        { "handle": "all-ac-condensers", "title": "All A/C Condensers", "thumbnail": "eq-ac-condensers.png" },
+        { "handle": "top-discharge-ac-units", "title": "Top Discharge Units", "thumbnail": "eq-ac-top-discharge.png" },
+        { "handle": "side-discharge-ac-units", "title": "Side Discharge Units", "thumbnail": "eq-ac-side-discharge.png" }
+      ]
+    },
+    {
+      "handle": "heat-pump-condensers",
+      "title": "Heat Pump Condensers",
+      "thumbnail": "eq-hp-condensers.png",
+      "children": [
+        { "handle": "all-heat-pump-condensers", "title": "All Heat Pump Condensers", "thumbnail": "eq-hp-condensers.png" },
+        { "handle": "top-discharge-heat-pump-condensers", "title": "Top Discharge Heat Pump Condensers", "thumbnail": "eq-hp-top-discharge.png" },
+        { "handle": "side-discharge-heat-pump-condensers", "title": "Side Discharge Heat Pump Condensers", "thumbnail": "eq-hp-side-discharge.png" }
+      ]
+    },
+    {
+      "handle": "gas-propane-furnaces",
+      "title": "Gas / Propane Furnaces",
+      "thumbnail": "eq-gas-furnaces.png",
+      "children": [
+        { "handle": "all-gas-propane-furnaces", "title": "All Gas / Propane Furnaces", "thumbnail": "eq-gas-furnaces.png" },
+        { "handle": "80-percent-gas-furnaces", "title": "80% Gas / Propane Furnaces", "thumbnail": "eq-gas-furnaces-80.png" },
+        { "handle": "90-plus-gas-furnaces", "title": "90%+ Gas / Propane Furnaces", "thumbnail": "eq-gas-furnaces-90.png" }
+      ]
+    },
+    {
+      "handle": "evaporator-coils",
+      "title": "Evaporator Coils",
+      "thumbnail": "eq-evap-coils.png",
+      "children": [
+        { "handle": "all-evaporator-coils", "title": "All Evaporator Coils", "thumbnail": "eq-evap-coils.png" },
+        { "handle": "cased-evaporator-coils", "title": "Cased Evaporator Coils", "thumbnail": "eq-evap-cased.png" },
+        { "handle": "uncased-evaporator-coils", "title": "Uncased Evaporator Coils", "thumbnail": "eq-evap-uncased.png" },
+        { "handle": "ductboard-evaporator-coils", "title": "Ductboard Evaporator Coils", "thumbnail": "eq-evap-ductboard.png" }
+      ]
+    },
+    {
+      "handle": "air-handlers",
+      "title": "Air Handlers",
+      "thumbnail": "eq-air-handlers.png",
+      "children": [
+        { "handle": "all-air-handlers", "title": "All Air Handlers", "thumbnail": "eq-air-handlers-all.png" },
+        { "handle": "ducted-air-handlers", "title": "Ducted Air Handlers", "thumbnail": "eq-air-handlers-ducted.png" },
+        { "handle": "indoor-air-handler-units", "title": "Indoor Air Handler Units", "thumbnail": "eq-air-handlers-indoor.png" }
+      ]
+    },
+    {
+      "handle": "ductless-mini-splits",
+      "title": "Ductless / Mini Splits",
+      "thumbnail": "eq-ductless.png",
+      "children": [
+        { "handle": "all-ductless-mini-splits", "title": "All Ductless / Mini Splits", "thumbnail": "eq-ductless.png" },
+        { "handle": "ductless-complete-kits", "title": "Complete Kits", "thumbnail": "eq-complete-kits.png" },
+        { "handle": "ductless-outdoor-units", "title": "Outdoor Units", "thumbnail": "eq-ductless-outdoor.png" },
+        { "handle": "ductless-indoor-units", "title": "Indoor Units", "thumbnail": "eq-ductless-indoor.png" },
+        { "handle": "single-zone-complete-kits", "title": "Single Zone Complete Kits", "thumbnail": "eq-ductless-single.png" },
+        { "handle": "multi-zone-complete-kits", "title": "Multi Zone Complete Kits", "thumbnail": "eq-ductless-multi.png" }
+      ]
+    },
+    {
+      "handle": "gas-package-units",
+      "title": "Gas Package Units",
+      "thumbnail": "eq-gas-package.png",
+      "children": [
+        { "handle": "all-gas-package-units", "title": "All Gas Package Units", "thumbnail": "eq-gas-package.png" },
+        { "handle": "residential-gas-package-units", "title": "Residential Gas Package Units", "thumbnail": "eq-gas-package-res.png" },
+        { "handle": "commercial-gas-package-units", "title": "Commercial Gas Package Units", "thumbnail": "eq-gas-package-com.png" }
+      ]
+    },
+    {
+      "handle": "heat-pump-package-units",
+      "title": "Heat Pump Package Units",
+      "thumbnail": "eq-hp-package.png",
+      "children": [
+        { "handle": "all-heat-pump-package-units", "title": "All Heat Pump Package Units", "thumbnail": "eq-hp-package.png" },
+        { "handle": "residential-heat-pump-package-units", "title": "Residential Heat Pump Package Units", "thumbnail": "eq-hp-package-res.png" },
+        { "handle": "commercial-heat-pump-package-units", "title": "Commercial Heat Pump Package Units", "thumbnail": "eq-hp-package-com.png" }
+      ]
+    },
+    {
+      "handle": "soffit-fan-coils-pancake-units",
+      "title": "Soffit Fan Coils / Pancake Units",
+      "thumbnail": "eq-fan-coils.png",
+      "children": [
+        { "handle": "all-fan-coils-pancake-units", "title": "All Fan Coils / Pancake Units", "thumbnail": "eq-fan-coils-all.png" },
+        { "handle": "cased-fan-coils-pancake-units", "title": "Cased Fan Coils / Pancake Units", "thumbnail": "eq-fan-coils-cased.png" },
+        { "handle": "uncased-fan-coils-pancake-units", "title": "Uncased Fan Coils / Pancake Units", "thumbnail": "eq-fan-coils-uncased.png" }
+      ]
+    },
+    {
+      "handle": "wall-furnaces",
+      "title": "Wall Furnaces",
+      "thumbnail": "eq-wall-furnaces.png",
+      "children": [
+        { "handle": "all-wall-furnaces", "title": "All Wall Furnaces", "thumbnail": "eq-wall-furnaces-all.png" },
+        { "handle": "single-wall-furnaces", "title": "Single Wall Furnaces", "thumbnail": "eq-wall-single.png" },
+        { "handle": "double-wall-furnaces", "title": "Double Wall Furnaces", "thumbnail": "eq-wall-double.png" }
+      ]
+    },
+    {
+      "handle": "mobile-home-hvac",
+      "title": "Mobile Home HVAC",
+      "thumbnail": "eq-mobile-home.png",
+      "children": [
+        { "handle": "all-mobile-home-hvac", "title": "All Mobile Home HVAC", "thumbnail": "eq-mobile-home.png" },
+        { "handle": "mobile-home-complete-kits", "title": "Mobile Home Complete Kits", "thumbnail": "eq-mobile-kits.png" },
+        { "handle": "mobile-home-furnaces", "title": "Mobile Home Furnaces", "thumbnail": "eq-mobile-furnaces.png" },
+        { "handle": "mobile-home-evaporator-coils", "title": "Mobile Home Evaporator Coils", "thumbnail": "eq-mobile-coils.png" },
+        { "handle": "mobile-home-ac-condensers", "title": "Mobile Home A/C Condensers", "thumbnail": "eq-mobile-condensers.png" }
+      ]
+    },
+    {
+      "handle": "compact-ahu-units",
+      "title": "Compact AHU Units",
+      "thumbnail": "eq-compact-ahu.png",
+      "children": []
+    },
+    {
+      "handle": "ptac-window-units",
+      "title": "PTAC Units / Window Units",
+      "thumbnail": "eq-ptac.png",
+      "children": []
+    }
+  ],
+  "product_metafields": [
+    { "key": "hvac_style", "name": "HVAC Style", "type": "single_line_text_field" },
+    { "key": "tonnage", "name": "Tonnage", "type": "single_line_text_field" },
+    { "key": "btu", "name": "BTUs", "type": "single_line_text_field" },
+    { "key": "refrigerant_type", "name": "Refrigerant Type", "type": "single_line_text_field" },
+    { "key": "stages", "name": "Stages", "type": "single_line_text_field" },
+    { "key": "phase", "name": "Phase", "type": "single_line_text_field" },
+    { "key": "afue", "name": "AFUE", "type": "single_line_text_field" },
+    { "key": "seer2", "name": "SEER 2", "type": "single_line_text_field" },
+    { "key": "energy_star", "name": "Energy Star", "type": "single_line_text_field" },
+    { "key": "fan_motor_direction", "name": "Condenser Fan Motor Direction", "type": "single_line_text_field" },
+    { "key": "airflow_direction", "name": "Airflow Direction", "type": "single_line_text_field" },
+    { "key": "unit_voltage", "name": "Unit Voltage", "type": "single_line_text_field" },
+    { "key": "amps", "name": "Amps", "type": "single_line_text_field" },
+    { "key": "zones", "name": "Zones", "type": "single_line_text_field" },
+    { "key": "liquid_line_size", "name": "Liquid Line Size", "type": "single_line_text_field" },
+    { "key": "suction_line_size", "name": "Suction Line Size", "type": "single_line_text_field" },
+    { "key": "furnace_width", "name": "Furnace / Air Handler Width", "type": "single_line_text_field" },
+    { "key": "furnace_height", "name": "Furnace / Air Handler Height", "type": "single_line_text_field" },
+    { "key": "furnace_depth", "name": "Furnace / Air Handler Depth", "type": "single_line_text_field" },
+    { "key": "condenser_width", "name": "Condenser Width", "type": "single_line_text_field" },
+    { "key": "condenser_depth", "name": "Condenser Depth", "type": "single_line_text_field" },
+    { "key": "condenser_height", "name": "Condenser Height", "type": "single_line_text_field" },
+    { "key": "blower_type", "name": "Blower Type", "type": "single_line_text_field" },
+    { "key": "fan_speeds", "name": "Fan Speeds", "type": "single_line_text_field" },
+    { "key": "nox", "name": "NOx", "type": "single_line_text_field" },
+    { "key": "case_type", "name": "Case Type", "type": "single_line_text_field" },
+    { "key": "vent_style", "name": "Vent Style", "type": "single_line_text_field" },
+    { "key": "wall_style", "name": "Wall Style", "type": "single_line_text_field" },
+    { "key": "fuel_type", "name": "Fuel Type", "type": "single_line_text_field" },
+    { "key": "mount_style", "name": "Mount Style", "type": "single_line_text_field" },
+    { "key": "temp_type", "name": "Temp Type", "type": "single_line_text_field" },
+    { "key": "ptac_style", "name": "PTAC / Window Style", "type": "single_line_text_field" }
+  ]
+}
