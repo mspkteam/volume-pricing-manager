@@ -144,7 +144,8 @@ async function ensureMetafield(
         type: def.type || "single_line_text_field",
         ownerType: "PRODUCT",
         description: `${def.name} filter for HVAC Equipment catalog`,
-        pin: true,
+        // Shopify allows only 50 pinned definitions shop-wide. Do not pin by default.
+        pin: false,
         access: { storefront: "PUBLIC_READ" },
       },
     },
@@ -153,6 +154,10 @@ async function ensureMetafield(
   if (errs.length) {
     const msg = errs.map((e) => e.message).join("; ");
     if (/taken|already|exists/i.test(msg)) return "exists";
+    // Soft-fail pin quota so remaining definitions can still be created
+    if (/pinned|50/i.test(msg)) {
+      throw new Error(`PIN_LIMIT:${def.key}:${msg}`);
+    }
     throw new Error(`${def.key}: ${msg}`);
   }
   return "created";
@@ -236,9 +241,20 @@ export async function setupEquipmentCatalog(
   }
 
   for (const def of catalog.product_metafields) {
-    const status = await ensureMetafield(admin, catalog.namespace, def);
-    if (status === "created") metafieldsCreated += 1;
-    else metafieldsExisting += 1;
+    try {
+      const status = await ensureMetafield(admin, catalog.namespace, def);
+      if (status === "created") metafieldsCreated += 1;
+      else metafieldsExisting += 1;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.startsWith("PIN_LIMIT:")) {
+        warnings.push(
+          `${def.key} skipped: shop already has 50 pinned metafield definitions. Definitions are created unpinned now — unpin unused ones in Settings → Custom data if needed, then re-run.`,
+        );
+        continue;
+      }
+      throw err;
+    }
   }
 
   for (const item of flatten(catalog.top_categories)) {
